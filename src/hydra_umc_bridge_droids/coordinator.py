@@ -20,7 +20,7 @@ from dataclasses import dataclass
 import math
 from typing import Mapping
 
-from hydra_umc_sdk.bridge_contract import BridgeJob, CellState, JobPhase, evaluate_job
+from hydra_umc_sdk.bridge_contract import BridgeJob, CellState, JobPhase, MachineState, evaluate_job
 
 
 @dataclass(frozen=True)
@@ -51,6 +51,20 @@ class DroidCoordinator:
     PLACE_OBJECT = "PLACE_OBJECT"
     RETURN_HOME = "RETURN_HOME"
     HOLD_POSITION = "HOLD_POSITION"
+    # Real, near-universal legged-robot posture commands this coordinator
+    # never modeled at all before - checked against Boston Dynamics'
+    # real, public Spot SDK (github.com/boston-dynamics/spot-sdk
+    # protos/bosdyn/api/basic_command.proto), whose own foundational
+    # mobility commands are stand/sit/selfright/safe_power_off, not just
+    # walk/manipulate. STAND and SIT are the two most basic real posture
+    # states across legged-robot SDKs generally (a droid that can't be
+    # told to sit before charging, or stand up before a job, is missing
+    # a real operational primitive, not an edge case). Neither computes
+    # balance/gait itself (same "onboard controller keeps authority"
+    # scope as every other action here) - each is just the named
+    # trigger, same as WALK_TO/PICK_OBJECT/etc.
+    STAND = "STAND"
+    SIT = "SIT"
 
     # Real, minimal per-action parameter contract - not full IK/planning
     # input, just the named string parameters this coordination boundary can
@@ -61,6 +75,8 @@ class DroidCoordinator:
         PLACE_OBJECT: ("x", "y"),
         RETURN_HOME: (),
         HOLD_POSITION: (),
+        STAND: (),
+        SIT: (),
     }
 
     # One real action per job phase - PREPARE/PROCESS both walk (to a
@@ -81,7 +97,7 @@ class DroidCoordinator:
     def action_plan(self) -> DroidActionPlan:
         """Return the static action vocabulary without opening any real transport."""
 
-        return DroidActionPlan("1.0", "plan-only", tuple(self._REQUIRED_PARAMS))
+        return DroidActionPlan("1.1", "plan-only", tuple(self._REQUIRED_PARAMS))
 
     @staticmethod
     def _valid_coordinates(parameters: Mapping[str, str]) -> bool:
@@ -106,3 +122,31 @@ class DroidCoordinator:
             return DroidDispatch(False, action, "PICK_OBJECT requires a non-empty object_id")
         decision = evaluate_job(job, cell_state)
         return DroidDispatch(decision.allowed, action, decision.reason)
+
+    def sit_request(self) -> DroidDispatch:
+        """Real, standalone SIT request - deliberately outside the
+        JobPhase-driven dispatch() flow above, same reasoning as
+        HOLD_POSITION's own ABORT-phase handling: sitting is a real
+        de-escalation into a safe, stable, low-energy resting posture
+        (the real precondition most legged-robot SDKs require before
+        charging - see this coordinator's own STAND/SIT comment), so an
+        operator must always be able to request it, not just when the
+        cell happens to be READY."""
+
+        return DroidDispatch(True, self.SIT, "sit requested - always forwarded regardless of cell/machine state")
+
+    def stand_request(self, cell_state: CellState, machine_state: MachineState) -> DroidDispatch:
+        """Real, standalone STAND request - unlike SIT above, standing up
+        is a real productive-readiness transition (the real precondition
+        most legged-robot SDKs require before WALK_TO/PICK_OBJECT/etc.
+        can run at all), so it goes through the same READY-cell +
+        IDLE-machine gate `evaluate_job()` applies to every other
+        productive action - accepting `cell_state`/`machine_state`
+        directly rather than a full BridgeJob since standing isn't tied
+        to any correlated job."""
+
+        if cell_state is not CellState.READY:
+            return DroidDispatch(False, self.STAND, f"cell is {cell_state.value}, not READY")
+        if machine_state is not MachineState.IDLE:
+            return DroidDispatch(False, self.STAND, f"external machine is {machine_state.value}, not IDLE")
+        return DroidDispatch(True, self.STAND, "cell and external machine are ready")

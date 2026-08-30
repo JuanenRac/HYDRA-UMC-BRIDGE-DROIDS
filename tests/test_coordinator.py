@@ -73,10 +73,38 @@ class CoordinatorTests(unittest.TestCase):
 
     def test_action_plan_is_static_and_explicitly_not_a_runtime(self):
         plan = self.coordinator.action_plan().to_dict()
-        self.assertEqual(plan["schema_version"], "1.0")
+        self.assertEqual(plan["schema_version"], "1.1")
         self.assertEqual(plan["mode"], "plan-only")
         self.assertIn("WALK_TO", plan["actions"])
         self.assertIn("PICK_OBJECT", plan["actions"])
+
+    def test_action_plan_includes_the_real_stand_and_sit_posture_commands(self):
+        # STAND/SIT (checked against Boston Dynamics' real, public Spot
+        # SDK basic_command.proto) are reachable through neither
+        # dispatch() nor any JobPhase - they must still appear in the
+        # static vocabulary.
+        plan = self.coordinator.action_plan().to_dict()
+        self.assertIn("STAND", plan["actions"])
+        self.assertIn("SIT", plan["actions"])
+
+    def test_sit_is_always_accepted_regardless_of_cell_or_machine_state(self):
+        # Same real de-escalation reasoning already applied to
+        # HOLD_POSITION/ABORT - an operator must always be able to
+        # request a safe, stable resting posture.
+        result = self.coordinator.sit_request()
+        self.assertTrue(result.accepted)
+        self.assertEqual(result.action, "SIT")
+
+    def test_stand_requires_a_ready_cell_and_an_idle_machine(self):
+        accepted = self.coordinator.stand_request(CellState.READY, MachineState.IDLE)
+        self.assertTrue(accepted.accepted)
+        self.assertEqual(accepted.action, "STAND")
+
+        cell_not_ready = self.coordinator.stand_request(CellState.INHIBITED, MachineState.IDLE)
+        self.assertFalse(cell_not_ready.accepted)
+
+        machine_not_idle = self.coordinator.stand_request(CellState.READY, MachineState.RUNNING)
+        self.assertFalse(machine_not_idle.accepted)
 
 
 if __name__ == "__main__":
