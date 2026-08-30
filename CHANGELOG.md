@@ -6,6 +6,32 @@ GPL-3.0-or-later - see LICENSE
 
 # Changelog
 
+## [0.0.4] - Real bosdyn-client Spot command transport (pre-real: connected, not simulated)
+
+- **`spot_transport.py`** (new) - this bridge's first real transport:
+  `SpotDroidControl` builds and sends real Boston Dynamics bosdyn-client
+  commands for an already-gated dispatch, using the real, documented API
+  ([dev.bostondynamics.com/python/bosdyn-client](https://dev.bostondynamics.com/python/bosdyn-client/src/bosdyn/client/robot_command)):
+  `sit()` -> `RobotCommandBuilder.synchro_sit_command()` (always allowed,
+  same reasoning as `DroidCoordinator.sit_request()`); `stand()` ->
+  `RobotCommandBuilder.synchro_stand_command()`, gated through
+  `DroidCoordinator.stand_request()`'s own READY+IDLE check rather than
+  re-implementing it; `walk_to()` ->
+  `RobotCommandBuilder.synchro_trajectory_command_in_body_frame(...)`,
+  gated on an already-accepted `DroidDispatch`. All three send through
+  `RobotCommandClient.robot_command()`. Both the command builder and the
+  command sink are written against small Protocols matching bosdyn-client's
+  own real method signatures, so the gating/composition logic is
+  unit-testable with plain fakes - no real Spot, network, or bosdyn-client
+  install required. `open_bosdyn_robot_command()` is the one place
+  `bosdyn-client` (new optional `[spot]` extra) is imported, lazily,
+  following its own documented bring-up sequence (create SDK, create robot,
+  authenticate, wait for time sync, get the command client), degrading to a
+  clear `RuntimeError` instead of a bare `ImportError` when it isn't
+  installed.
+- 6 new regression tests against fake builder/sink objects - 19/19 tests
+  passing.
+
 ## [0.0.3] - Real STAND/SIT posture commands
 
 - **`coordinator.py`** - added `STAND`/`SIT`, real posture primitives this

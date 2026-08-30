@@ -9,6 +9,7 @@
 from hydra_umc_sdk.bridge_contract import BridgeJob, CellState, JobPhase, MachineState
 
 from .coordinator import DroidActionPlan, DroidCoordinator, DroidDispatch
+from .spot_transport import SpotDroidControl, SpotSendResult, open_bosdyn_robot_command
 
 __all__ = [
     "BridgeJob",
@@ -18,4 +19,7 @@ __all__ = [
     "DroidActionPlan",
     "DroidCoordinator",
     "DroidDispatch",
+    "SpotDroidControl",
+    "SpotSendResult",
+    "open_bosdyn_robot_command",
 ]
