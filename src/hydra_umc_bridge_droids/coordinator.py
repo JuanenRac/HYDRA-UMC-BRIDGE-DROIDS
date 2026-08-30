@@ -17,6 +17,7 @@ here to a transport-agnostic (Wi-Fi/BT/4G-5G) action-trigger link instead.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from typing import Mapping
 
 from hydra_umc_sdk.bridge_contract import BridgeJob, CellState, JobPhase, evaluate_job
@@ -82,6 +83,15 @@ class DroidCoordinator:
 
         return DroidActionPlan("1.0", "plan-only", tuple(self._REQUIRED_PARAMS))
 
+    @staticmethod
+    def _valid_coordinates(parameters: Mapping[str, str]) -> bool:
+        """Accept only finite numeric x/y targets at this safety boundary."""
+
+        try:
+            return all(math.isfinite(float(parameters[name])) for name in ("x", "y"))
+        except (KeyError, TypeError, ValueError):
+            return False
+
     def dispatch(self, job: BridgeJob, cell_state: CellState) -> DroidDispatch:
         action = self._phase_actions.get(job.phase)
         if action is None:
@@ -90,5 +100,9 @@ class DroidCoordinator:
         missing = [name for name in required if name not in job.parameters]
         if missing:
             return DroidDispatch(False, action, f"missing required parameter(s) for {action}: {', '.join(missing)}")
+        if action in (self.WALK_TO, self.PLACE_OBJECT) and not self._valid_coordinates(job.parameters):
+            return DroidDispatch(False, action, f"{action} requires finite numeric x and y coordinates")
+        if action == self.PICK_OBJECT and not str(job.parameters["object_id"]).strip():
+            return DroidDispatch(False, action, "PICK_OBJECT requires a non-empty object_id")
         decision = evaluate_job(job, cell_state)
         return DroidDispatch(decision.allowed, action, decision.reason)

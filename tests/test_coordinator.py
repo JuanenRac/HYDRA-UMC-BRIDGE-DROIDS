@@ -28,12 +28,28 @@ class CoordinatorTests(unittest.TestCase):
         self.assertIn("x", result.reason)
         self.assertIn("y", result.reason)
 
+    def test_movement_rejects_non_numeric_or_non_finite_coordinates(self):
+        for coordinates in (
+            {"x": "east", "y": "2"},
+            {"x": "nan", "y": "2"},
+            {"x": "1", "y": "inf"},
+        ):
+            with self.subTest(coordinates=coordinates):
+                result = self.coordinator.dispatch(job(parameters=coordinates), CellState.READY)
+                self.assertFalse(result.accepted)
+                self.assertIn("finite numeric", result.reason)
+
     def test_pick_object_requires_object_id(self):
         rejected = self.coordinator.dispatch(job(JobPhase.LOAD, parameters={}), CellState.READY)
         self.assertFalse(rejected.accepted)
         self.assertEqual(rejected.action, "PICK_OBJECT")
         accepted = self.coordinator.dispatch(job(JobPhase.LOAD, parameters={"object_id": "crate-7"}), CellState.READY)
         self.assertTrue(accepted.accepted)
+
+    def test_pick_object_rejects_a_blank_object_id(self):
+        result = self.coordinator.dispatch(job(JobPhase.LOAD, parameters={"object_id": "  "}), CellState.READY)
+        self.assertFalse(result.accepted)
+        self.assertIn("non-empty", result.reason)
 
     def test_busy_machine_is_not_reused(self):
         result = self.coordinator.dispatch(job(state=MachineState.RUNNING, parameters={"x": "0", "y": "0"}), CellState.READY)

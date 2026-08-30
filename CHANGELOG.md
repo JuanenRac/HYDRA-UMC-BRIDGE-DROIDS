@@ -6,6 +6,12 @@ GPL-3.0-or-later - see LICENSE
 
 # Changelog
 
+## [0.0.2] - Finite-coordinate and non-empty-identifier gate
+
+- Required finite numeric coordinates for `WALK_TO` and `PLACE_OBJECT`, and a
+  non-empty identifier for `PICK_OBJECT`, before any future droid transport.
+- 10/10 tests passing.
+
 ## [0.0.1]
 
 - Added a dependency-free droid coordination core (`DroidCoordinator`):
