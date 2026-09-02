@@ -70,15 +70,19 @@ HYDRA-UMC-BRIDGE-DROIDS/
 ├── src/
 │   └── hydra_umc_bridge_droids/
 │       ├── __init__.py
-│       └── coordinator.py       # DroidCoordinator: puerta de disparadores de acción sin dependencias
+│       ├── coordinator.py       # DroidCoordinator: puerta de disparadores de acción sin dependencias
+│       └── spot_transport.py    # Envía un DroidDispatch ya validado como un comando real de bosdyn-client
 ├── tests/
-│   └── test_coordinator.py      # Tests unitarios deterministas del núcleo de coordinación
+│   ├── test_coordinator.py      # Tests unitarios deterministas del núcleo de coordinación
+│   └── test_spot_transport.py   # Tests de forma de comando bosdyn-client contra un cliente de robot simulado
 ├── tools/
 │   ├── build_test.py            # Compilación + tests sin mutación (build-test.bat/.sh)
 │   ├── bump_version.py          # Sincroniza pyproject.toml, manifiesto y CHANGELOG.md
 │   └── inspect_action_plan.py   # Imprime el plan de acción estático (sin abrir transporte)
 ├── docs/
 │   └── BRIDGE_GUIDE.md          # Alcance, plataformas compatibles, scripts, puerta de aceptación de hardware
+├── images/
+│   └── HYDRA_UMC_BANNER.svg     # Banner del README
 ├── build-test.bat / build-test.sh  # Solo valida, nunca modifica el repositorio
 ├── build.bat / build.sh            # Valida y luego sube versión + CHANGELOG si tiene éxito
 ├── pyproject.toml               # Metadatos del paquete; depende de HYDRA-UMC-SDK (git)

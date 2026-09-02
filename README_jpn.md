@@ -70,15 +70,19 @@ HYDRA-UMC-BRIDGE-DROIDS/
 ├── src/
 │   └── hydra_umc_bridge_droids/
 │       ├── __init__.py
-│       └── coordinator.py       # DroidCoordinator: 依存関係なしのアクショントリガーゲート
+│       ├── coordinator.py       # DroidCoordinator: 依存関係なしのアクショントリガーゲート
+│       └── spot_transport.py    # 検証済みのDroidDispatchを実際のbosdyn-clientコマンドとして送信
 ├── tests/
-│   └── test_coordinator.py      # 連携コアの決定論的ユニットテスト
+│   ├── test_coordinator.py      # 連携コアの決定論的ユニットテスト
+│   └── test_spot_transport.py   # 疑似ロボットコマンドクライアントに対するbosdyn-clientコマンド形状テスト
 ├── tools/
 │   ├── build_test.py            # 非破壊的なコンパイル+テストランナー (build-test.bat/.sh)
 │   ├── bump_version.py          # pyproject.toml、マニフェスト、CHANGELOG.md を同期
 │   └── inspect_action_plan.py   # 静的なアクションプランを出力する(トランスポートを開かない)
 ├── docs/
 │   └── BRIDGE_GUIDE.md          # 適用範囲、対応プラットフォーム、スクリプト、ハードウェア受け入れゲート
+├── images/
+│   └── HYDRA_UMC_BANNER.svg     # README バナー
 ├── build-test.bat / build-test.sh  # 検証のみ、リポジトリを一切変更しない
 ├── build.bat / build.sh            # 検証後、成功時のみバージョン + CHANGELOG を更新
 ├── pyproject.toml               # パッケージメタデータ。HYDRA-UMC-SDK に依存 (git)
