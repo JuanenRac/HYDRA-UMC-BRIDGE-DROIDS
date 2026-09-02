@@ -34,8 +34,9 @@ GPL-3.0-or-later - see LICENSE
 * ✅ **実在するアクションごとのパラメータ検証:** 各アクション・トリガーは、ジョブが転送される前にチェックされる独自の実在する最小限の必須パラメータ契約を持つ(例:`WALK_TO` は `x`/`y` を必要とする)—— 自身のアクションが必要とするものが欠けたリクエストはローカルで拒否され、下流に黙って通過することはない。*(実装済み、テスト済み)*
 * ✅ **実在する共有安全ゲート:** `DroidCoordinator.dispatch()` を通じて送信されるすべてのジョブは、`HYDRA-UMC-SDK` の `bridge_contract` にある `evaluate_job()` によって評価される。これは他のすべての兄弟ブリッジとHYDRA-UMC-SERVERが使うのと同じゲートである。生産フェーズには外部機械が `IDLE` であり、HYDRA-UMCセルが `READY` であることが必要だが、(`ABORT` からマッピングされる)`HOLD_POSITION` は故障中でも要求可能なままである。*(実装済み)*
 * ✅ **フェイルクローズのフェーズルーティングと静的エビデンス:** 未知の将来SDKフェーズは、推測されるのではなく拒否される。`inspect_action_plan.py` はトランスポートを一切開かずに静的スキーマ `1.0` のアクションプランを出力する。*(実装・テスト済み)*
+* ✅ **実際の Boston Dynamics Spot トランスポート:** `spot_transport.py` の `SpotDroidControl` は、すでにゲートを通過したディスパッチを、実際の bosdyn-client コマンド（`synchro_stand_command`/`synchro_sit_command`/`synchro_trajectory_command_in_body_frame`、`RobotCommandClient.robot_command()` 経由で送信）として送信する —— 拒否されたディスパッチがネットワークに届くことは決してない。*(実装済み、`tests/test_spot_transport.py` でテスト済み)*
 * ✅ **非破壊的なビルド/テスト:** `build-test.bat`/`.sh` はソースをコンパイルし、バージョンやCHANGELOGを変更せずに決定論的なユニットテストを実行する。*(実装済み、下記「ビルドと実行」を参照)*
-* 🔜 **実際のWi-Fi/BT/4G-5Gトランスポートアダプターと文書化されたドロイドコマンドインターフェース** —— 実際のプラットフォームが選定・テストされた後にのみ導入される。*(計画中)*
+* 🔜 **Spot 以外のドロイドプラットフォーム向けの Wi-Fi/BT/4G-5G アダプター** —— そのプラットフォームが選定・テストされた後にのみ導入される。*(計画中)*
 
 ---
 

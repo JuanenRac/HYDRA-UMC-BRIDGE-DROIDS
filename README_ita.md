@@ -34,8 +34,9 @@ Appartiene alla famiglia **Mobile & Autonomous Bridges** insieme a `HYDRA-UMC-BR
 * ✅ **Validazione reale dei parametri per azione:** ogni trigger di azione ha il proprio contratto reale e minimo di parametri obbligatori (ad es. `WALK_TO` richiede `x`/`y`) verificato prima che un lavoro venga mai inoltrato - una richiesta a cui manca ciò che la propria azione richiede viene rifiutata localmente, non passata silenziosamente a valle. *(implementato, testato)*
 * ✅ **Porta di sicurezza condivisa, reale:** ogni lavoro inviato tramite `DroidCoordinator.dispatch()` viene valutato da `evaluate_job()` del `bridge_contract` di `HYDRA-UMC-SDK`, la stessa porta usata da tutti i ponti fratelli e da HYDRA-UMC-SERVER; una fase produttiva richiede una macchina esterna `IDLE` e una cella HYDRA-UMC `READY`, mentre `HOLD_POSITION` (mappato da `ABORT`) resta richiedibile durante un guasto. *(implementato)*
 * ✅ **Instradamento delle fasi chiuso ed evidenza statica:** una futura fase SDK sconosciuta viene negata anziché ipotizzata. `inspect_action_plan.py` emette il piano d'azione statico di schema `1.0` senza aprire alcun trasporto. *(implementato, testato)*
+* ✅ **Trasporto Boston Dynamics Spot reale:** `SpotDroidControl` di `spot_transport.py` invia un dispatch già validato come un vero comando bosdyn-client (`synchro_stand_command`/`synchro_sit_command`/`synchro_trajectory_command_in_body_frame`, inviato tramite `RobotCommandClient.robot_command()`) - un dispatch rifiutato non raggiunge mai la rete. *(implementato, testato in `tests/test_spot_transport.py`)*
 * ✅ **Build/test non mutante:** `build-test.bat`/`.sh` compilano il codice sorgente ed eseguono test unitari deterministici senza cambiare versione o CHANGELOG. *(implementato, vedi COMPILAZIONE ED ESECUZIONE più sotto)*
-* 🔜 **Adattatore di trasporto reale Wi-Fi/BT/4G-5G e un'interfaccia di comandi per droidi documentata** - introdotti solo dopo che una piattaforma reale sarà selezionata e testata. *(pianificato)*
+* 🔜 **Adattatore Wi-Fi/BT/4G-5G specifico per una piattaforma di droide non Spot** - introdotto solo dopo che quella piattaforma sarà selezionata e testata. *(pianificato)*
 
 ---
 

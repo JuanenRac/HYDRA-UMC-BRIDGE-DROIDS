@@ -34,8 +34,9 @@ GPL-3.0-or-later - see LICENSE
 * ✅ **真实的按动作参数校验:** 每个动作触发器都有自己真实的、最小化的必填参数契约(例如 `WALK_TO` 需要 `x`/`y`),在任务被转发之前就会进行检查——缺少其对应动作所需参数的请求会在本地被拒绝,而不会被悄悄传递到下游。*(已实现,已测试)*
 * ✅ **真实的共享安全门控:** 每个通过 `DroidCoordinator.dispatch()` 派发的任务都会由 `HYDRA-UMC-SDK` 的 `bridge_contract` 中的 `evaluate_job()` 评估,这与所有兄弟桥接以及 HYDRA-UMC-SERVER 使用的是同一个门控;生产性阶段需要外部机器处于 `IDLE` 且 HYDRA-UMC 单元处于 `READY`,而 `HOLD_POSITION`(从 `ABORT` 映射而来)在故障期间仍可请求。*(已实现)*
 * ✅ **安全拒绝的阶段路由与静态证据:** 未知的未来 SDK 阶段会被拒绝,而不是被猜测处理。`inspect_action_plan.py` 会输出静态模式 `1.0` 的动作计划,且不会打开任何传输通道。*(已实现,已测试)*
+* ✅ **真实的 Boston Dynamics Spot 传输:** `spot_transport.py` 的 `SpotDroidControl` 将一个已通过门控的调度作为真实的 bosdyn-client 命令(`synchro_stand_command`/`synchro_sit_command`/`synchro_trajectory_command_in_body_frame`,通过 `RobotCommandClient.robot_command()` 发送)——被拒绝的调度永远不会到达网络。*(已实现,在 `tests/test_spot_transport.py` 中测试)*
 * ✅ **非变更式构建/测试:** `build-test.bat`/`.sh` 编译源码并运行确定性单元测试,不改变版本或 CHANGELOG。*(已实现,见下方"构建与运行")*
-* 🔜 **真实的 Wi-Fi/BT/4G-5G 传输适配器,以及有文档记录的机器人命令接口**——只有在选定并测试了真实平台之后才会引入。*(计划中)*
+* 🔜 **面向非 Spot 机器人平台的 Wi-Fi/BT/4G-5G 适配器**——只有在选定并测试了该平台之后才会引入。*(计划中)*
 
 ---
 

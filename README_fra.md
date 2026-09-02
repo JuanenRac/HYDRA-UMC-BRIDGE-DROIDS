@@ -34,8 +34,9 @@ Il appartient à la famille **Mobile & Autonomous Bridges**, aux côtés de `HYD
 * ✅ **Validation réelle des paramètres par action :** chaque déclencheur d'action a son propre contrat réel et minimal de paramètres obligatoires (par ex. `WALK_TO` nécessite `x`/`y`), vérifié avant qu'une tâche ne soit jamais transmise — une requête à laquelle il manque ce que sa propre action exige est rejetée localement, et non transmise en silence en aval. *(implémenté, testé)*
 * ✅ **Portail de sécurité partagé, réel :** chaque tâche envoyée via `DroidCoordinator.dispatch()` est évaluée par `evaluate_job()` du `bridge_contract` de `HYDRA-UMC-SDK`, le même portail utilisé par tous les ponts frères et HYDRA-UMC-SERVER ; une phase productive nécessite une machine externe `IDLE` et une cellule HYDRA-UMC `READY`, tandis que `HOLD_POSITION` (mappé depuis `ABORT`) reste demandable pendant un défaut. *(implémenté)*
 * ✅ **Routage de phases fermé et évidence statique :** une future phase SDK inconnue est refusée plutôt que devinée. `inspect_action_plan.py` émet le plan d'action statique de schéma `1.0` sans ouvrir aucun transport. *(implémenté, testé)*
+* ✅ **Transport Boston Dynamics Spot réel :** `SpotDroidControl` de `spot_transport.py` envoie une répartition déjà validée comme une véritable commande bosdyn-client (`synchro_stand_command`/`synchro_sit_command`/`synchro_trajectory_command_in_body_frame`, envoyée via `RobotCommandClient.robot_command()`) - une répartition rejetée n'atteint jamais le réseau. *(implémenté, testé dans `tests/test_spot_transport.py`)*
 * ✅ **Build/test non mutant :** `build-test.bat`/`.sh` compilent le code source et exécutent des tests unitaires déterministes sans changer la version ni le CHANGELOG. *(implémenté, voir COMPILATION ET EXÉCUTION ci-dessous)*
-* 🔜 **Adaptateur de transport réel Wi-Fi/BT/4G-5G et une interface de commandes de droïde documentée** — introduits seulement après la sélection et le test d'une plateforme réelle. *(prévu)*
+* 🔜 **Adaptateur Wi-Fi/BT/4G-5G propre à une plateforme de droïde autre que Spot** — introduit seulement après la sélection et le test de cette plateforme. *(prévu)*
 
 ---
 
