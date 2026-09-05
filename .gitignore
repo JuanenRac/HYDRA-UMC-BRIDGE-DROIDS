@@ -9,3 +9,9 @@ __pycache__/
 build/
 dist/
 *.egg-info/
+
+# Local configuration may contain deployment credentials; retain only a safe
+# example when one is introduced later.
+.env
+.env.*
+!.env.example
