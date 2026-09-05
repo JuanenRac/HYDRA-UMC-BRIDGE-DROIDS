@@ -132,4 +132,28 @@ class SpotDroidControl:
             sink.robot_command(command)
         except OSError as error:
             return SpotSendResult(False, f"Spot command send failed: {error}")
+        except Exception as error:
+            # Found in an ecosystem-wide software-improvements audit: a
+            # real bosdyn-client failure (expired auth token, RPC timeout,
+            # a real robot fault) raises from bosdyn's own exception
+            # hierarchy (bosdyn.client.exceptions.Error), not OSError - it
+            # used to propagate uncaught here instead of degrading to a
+            # clean SpotSendResult like every other transport failure in
+            # this bridge family already does. Narrowed to that real
+            # hierarchy specifically (imported lazily, same reasoning as
+            # open_bosdyn_robot_command() above) so a genuine bug in this
+            # module's own code - or in a test's fake sink, which never
+            # raises a real bosdyn error - still surfaces as an unhandled
+            # exception instead of being silently downgraded.
+            try:
+                from bosdyn.client.exceptions import Error as BosdynError
+            except ImportError:
+                # bosdyn-client isn't installed, so `error` cannot be a
+                # real bosdyn error - re-raise the ORIGINAL exception, not
+                # this ImportError (a bare `raise` here would re-raise the
+                # ImportError instead and mask the real failure).
+                raise error from None
+            if not isinstance(error, BosdynError):
+                raise
+            return SpotSendResult(False, f"Spot command send failed: {error}")
         return SpotSendResult(True, "sent")

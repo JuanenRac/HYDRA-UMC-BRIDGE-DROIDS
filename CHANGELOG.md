@@ -8,6 +8,21 @@ GPL-3.0-or-later - see LICENSE
 
 ## [Unreleased] - Maturity raised to established
 
+- **`spot_transport.py`'s `_send()` now catches real bosdyn-client
+  failures, not just `OSError`** - found in an ecosystem-wide
+  software-improvements audit: a real bosdyn-client failure (expired
+  auth token, RPC timeout, a real robot fault) raises from bosdyn's own
+  exception hierarchy (`bosdyn.client.exceptions.Error`), not `OSError`
+  - it used to propagate uncaught instead of degrading to a clean
+  `SpotSendResult(False, ...)` like this bridge's other transports
+  already do. The real exception class is imported lazily (same
+  reasoning as `open_bosdyn_robot_command()`) and narrowly matched - a
+  genuine bug in this module's own code still surfaces as an unhandled
+  exception rather than being silently downgraded. New regression tests
+  prove both paths: a real bosdyn error degrading cleanly (a fake
+  `bosdyn.client.exceptions` module is injected into `sys.modules` to
+  exercise the real import-and-isinstance-check code without needing the
+  real SDK installed) and an unrelated bug still propagating.
 - **`hydra-umc.project.json`** - `maturity` raised from `functional` to
   `established`, matching the real substance already shipped in 0.0.4
   (real, gated coordination logic plus a real bosdyn-client Spot command

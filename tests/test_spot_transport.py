@@ -14,6 +14,8 @@ prove the gating/composition logic is correct independent of bosdyn-client
 here.
 """
 
+import sys
+import types
 import unittest
 
 from hydra_umc_sdk.bridge_contract import CellState, MachineState
@@ -40,7 +42,7 @@ class FakeBuilder:
 class FakeSink:
     def __init__(self):
         self.sent: list[object] = []
-        self.raise_on_send: OSError | None = None
+        self.raise_on_send: Exception | None = None
 
     def robot_command(self, command, end_time_secs=None):
         if self.raise_on_send:
@@ -90,6 +92,58 @@ class SpotDroidControlTests(unittest.TestCase):
         result = self.control.sit(self.builder, self.sink)
         self.assertFalse(result.sent)
         self.assertIn("robot unreachable", result.reason)
+
+    def test_a_real_bosdyn_error_degrades_to_a_clean_result_not_a_crash(self):
+        # Found in an ecosystem-wide software-improvements audit: a real
+        # bosdyn-client failure (expired auth token, RPC timeout, a real
+        # robot fault) raises from bosdyn's own exception hierarchy
+        # (bosdyn.client.exceptions.Error), not OSError - it used to
+        # propagate uncaught. bosdyn-client isn't installed in this
+        # environment (by design - see this file's own module docstring),
+        # so a fake bosdyn.client.exceptions module with a real-shaped
+        # Error class is injected into sys.modules to prove the real
+        # import-and-isinstance-check code path, not just that SOME
+        # exception type is caught.
+        fake_exceptions = types.ModuleType("bosdyn.client.exceptions")
+
+        class FakeBosdynError(Exception):
+            pass
+
+        fake_exceptions.Error = FakeBosdynError
+        fake_bosdyn = types.ModuleType("bosdyn")
+        fake_bosdyn_client = types.ModuleType("bosdyn.client")
+        patched = {
+            "bosdyn": fake_bosdyn,
+            "bosdyn.client": fake_bosdyn_client,
+            "bosdyn.client.exceptions": fake_exceptions,
+        }
+        original = {name: sys.modules.get(name) for name in patched}
+        sys.modules.update(patched)
+        try:
+            self.sink.raise_on_send = FakeBosdynError("auth token expired")
+            result = self.control.sit(self.builder, self.sink)
+        finally:
+            for name, module in original.items():
+                if module is None:
+                    sys.modules.pop(name, None)
+                else:
+                    sys.modules[name] = module
+        self.assertFalse(result.sent)
+        self.assertIn("auth token expired", result.reason)
+
+    def test_an_unexpected_error_still_propagates_when_bosdyn_is_not_installed(self):
+        # Guards against silently downgrading a genuine bug in this
+        # module's own code (or a test's fake sink) to a clean "failed to
+        # send" result just because it isn't an OSError.
+        try:
+            import bosdyn.client.exceptions  # noqa: F401
+
+            self.skipTest("bosdyn-client is installed in this environment - nothing to prove here")
+        except ImportError:
+            pass
+        self.sink.raise_on_send = ValueError("not a real transport failure - a bug")
+        with self.assertRaises(ValueError):
+            self.control.sit(self.builder, self.sink)
 
 
 class OpenBosdynRobotCommandTests(unittest.TestCase):
