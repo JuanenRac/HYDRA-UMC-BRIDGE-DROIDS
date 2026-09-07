@@ -1,0 +1,134 @@
+# =============================================================================
+# HYDRA-UMC-BRIDGE-DROIDS - Coordinator tests
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+# =============================================================================
+
+import unittest
+from types import SimpleNamespace
+
+from hydra_umc_sdk.bridge_contract import BridgeError
+from hydra_umc_bridge_droids import BridgeJob, CellState, DroidCoordinator, JobPhase, MachineState
+
+
+def job(phase=JobPhase.PROCESS, state=MachineState.IDLE, parameters=None):
+    return BridgeJob("job-1", "idempotency-1", "droid-1", phase, state, parameters or {})
+
+
+class CoordinatorTests(unittest.TestCase):
+    def setUp(self):
+        self.coordinator = DroidCoordinator()
+
+    def test_walk_to_with_real_coordinates_is_accepted(self):
+        result = self.coordinator.dispatch(job(parameters={"x": "1.5", "y": "2.0"}), CellState.READY)
+        self.assertTrue(result.accepted)
+        self.assertEqual(result.action, "WALK_TO")
+
+    def test_walk_to_without_coordinates_is_rejected_before_any_transport(self):
+        result = self.coordinator.dispatch(job(parameters={}), CellState.READY)
+        self.assertFalse(result.accepted)
+        self.assertIn("x", result.reason)
+        self.assertIn("y", result.reason)
+
+    def test_movement_rejects_non_numeric_or_non_finite_coordinates(self):
+        for coordinates in (
+            {"x": "east", "y": "2"},
+            {"x": "nan", "y": "2"},
+            {"x": "1", "y": "inf"},
+        ):
+            with self.subTest(coordinates=coordinates):
+                result = self.coordinator.dispatch(job(parameters=coordinates), CellState.READY)
+                self.assertFalse(result.accepted)
+                self.assertIn("finite numeric", result.reason)
+
+    def test_pick_object_requires_object_id(self):
+        rejected = self.coordinator.dispatch(job(JobPhase.LOAD, parameters={}), CellState.READY)
+        self.assertFalse(rejected.accepted)
+        self.assertEqual(rejected.action, "PICK_OBJECT")
+        accepted = self.coordinator.dispatch(job(JobPhase.LOAD, parameters={"object_id": "crate-7"}), CellState.READY)
+        self.assertTrue(accepted.accepted)
+
+    def test_pick_object_rejects_a_blank_object_id(self):
+        result = self.coordinator.dispatch(job(JobPhase.LOAD, parameters={"object_id": "  "}), CellState.READY)
+        self.assertFalse(result.accepted)
+        self.assertIn("non-empty", result.reason)
+
+    def test_busy_machine_is_not_reused(self):
+        result = self.coordinator.dispatch(job(state=MachineState.RUNNING, parameters={"x": "0", "y": "0"}), CellState.READY)
+        self.assertFalse(result.accepted)
+
+    def test_hold_position_needs_no_parameters_and_stays_available_during_fault(self):
+        result = self.coordinator.dispatch(job(JobPhase.ABORT, MachineState.FAULT, {}), CellState.FAULT)
+        self.assertTrue(result.accepted)
+        self.assertEqual(result.action, "HOLD_POSITION")
+
+    def test_complete_returns_home_with_no_parameters_required(self):
+        result = self.coordinator.dispatch(job(JobPhase.COMPLETE, parameters={}), CellState.READY)
+        self.assertTrue(result.accepted)
+        self.assertEqual(result.action, "RETURN_HOME")
+
+    # V07-014 (found in an independent revalidation audit, P2, shared
+    # with BRIDGE-AMR/BRIDGE-OPENPNP/BRIDGE-ROS2): HYDRA-UMC-SDK's own
+    # real fix (REV-008) now rejects an unrecognised `phase` AT
+    # CONSTRUCTION TIME (`BridgeJob.__post_init__` requires a real
+    # `JobPhase` member) - this test used to construct one directly with
+    # a raw string, which is no longer possible through the real public
+    # constructor at all. Split in two, same as HYDRA-UMC-BRIDGE-UAV's
+    # own already-updated test: construction rejection below, and the
+    # coordinator's own defensive fallback covered separately with a
+    # minimal explicit double instead of weakening the SDK's public
+    # contract to let the old construction succeed again.
+    def test_constructing_a_bridge_job_with_an_unknown_phase_is_refused_by_the_sdk_itself(self):
+        with self.assertRaises(BridgeError):
+            BridgeJob("job-2", "idempotency-2", "droid-1", "SOME_FUTURE_PHASE", MachineState.IDLE, {})
+
+    def test_unknown_sdk_phase_fails_closed_instead_of_guessing_an_action(self):
+        # A real BridgeJob can never carry an unmapped phase any more (see
+        # above) - this proves dispatch()'s own `_phase_actions.get(...)`
+        # fallback still fails closed as defense-in-depth, using a minimal
+        # explicit double (only the one attribute this fallback actually
+        # reads before returning) rather than a real BridgeJob the SDK
+        # would now refuse to construct at all.
+        unknown = SimpleNamespace(phase="SOME_FUTURE_PHASE")
+        result = self.coordinator.dispatch(unknown, CellState.READY)
+        self.assertFalse(result.accepted)
+        self.assertEqual(result.action, "none")
+
+    def test_action_plan_is_static_and_explicitly_not_a_runtime(self):
+        plan = self.coordinator.action_plan().to_dict()
+        self.assertEqual(plan["schema_version"], "1.1")
+        self.assertEqual(plan["mode"], "plan-only")
+        self.assertIn("WALK_TO", plan["actions"])
+        self.assertIn("PICK_OBJECT", plan["actions"])
+
+    def test_action_plan_includes_the_real_stand_and_sit_posture_commands(self):
+        # STAND/SIT (checked against Boston Dynamics' real, public Spot
+        # SDK basic_command.proto) are reachable through neither
+        # dispatch() nor any JobPhase - they must still appear in the
+        # static vocabulary.
+        plan = self.coordinator.action_plan().to_dict()
+        self.assertIn("STAND", plan["actions"])
+        self.assertIn("SIT", plan["actions"])
+
+    def test_sit_is_always_accepted_regardless_of_cell_or_machine_state(self):
+        # Same real de-escalation reasoning already applied to
+        # HOLD_POSITION/ABORT - an operator must always be able to
+        # request a safe, stable resting posture.
+        result = self.coordinator.sit_request()
+        self.assertTrue(result.accepted)
+        self.assertEqual(result.action, "SIT")
+
+    def test_stand_requires_a_ready_cell_and_an_idle_machine(self):
+        accepted = self.coordinator.stand_request(CellState.READY, MachineState.IDLE)
+        self.assertTrue(accepted.accepted)
+        self.assertEqual(accepted.action, "STAND")
+
+        cell_not_ready = self.coordinator.stand_request(CellState.INHIBITED, MachineState.IDLE)
+        self.assertFalse(cell_not_ready.accepted)
+
+        machine_not_idle = self.coordinator.stand_request(CellState.READY, MachineState.RUNNING)
+        self.assertFalse(machine_not_idle.accepted)
+
+
+if __name__ == "__main__":
+    unittest.main()
