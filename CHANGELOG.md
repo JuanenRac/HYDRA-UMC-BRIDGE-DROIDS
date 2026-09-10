@@ -30,6 +30,36 @@ GPL-3.0-or-later - see LICENSE
   already marked `established` - e.g. HYDRA-UMC-BRIDGE-CNC). Metadata-only,
   no code change, no version bump.
 
+## [0.0.6] - A bosdyn-client-shaped Spot emulator, not a record-only fake sink
+
+Until now the only doubles here were `FakeBuilder` (opaque sentinels) and
+`FakeSink` (records one call, or raises). A real Spot's
+`RobotCommandClient.robot_command()` accepts a real `RobotCommand`
+protobuf whose `synchronized_command.mobility_command` carries exactly
+one of a `stand_request` / `sit_request` / `se2_trajectory_request`;
+returns a `RobotCommandResponse` with an integer `command_id` and a
+`status` from the real `RobotCommandResponse.Status` enum (`STATUS_OK`,
+`STATUS_NOT_POWERED_ON`, `STATUS_EXPIRED`, `STATUS_TOO_DISTANT`,
+`STATUS_BEHAVIOR_FAULT`, ...), NOT an exception for a command the robot
+simply cannot execute - only for a real RPC / lease failure; and moves
+the robot through a real posture/motion state machine a caller polls with
+`robot_command_feedback(command_id)`.
+
+New `tests/spot_emulator.py`: `SpotCommandBuilderEmulator` builds
+real-proto-shaped command objects; `SpotRobotEmulator` (the sink)
+executes them against that state machine (POWERED_OFF / SITTING /
+STANDING / MOVING), rejecting a trajectory from a sit with
+`STATUS_BEHAVIOR_FAULT`, one past the ~50 m body-frame limit with
+`STATUS_TOO_DISTANT`, one with an `end_time_secs` in the past with
+`STATUS_EXPIRED`, and every motion command while E-stopped with
+`STATUS_NOT_POWERED_ON`. `engage_estop()` / `set_lease_held()` /
+`power_off()` / `raise_behavior_fault()` drive the physical side; a lease
+lost mid-RPC is raised as `OSError` so `SpotDroidControl._send()`
+degrades it cleanly. New `tests/test_spot_emulator.py` runs this
+bridge's real `SpotDroidControl` end to end against it (9 tests): the
+full stand -> walk -> arrive (via feedback) -> sit lifecycle over real
+proto commands, and each real refusal path. 31 tests total.
+
 ## [0.0.5] - V07-014: the SDK's own real phase-construction rejection reached this bridge's test suite
 
 A second independent revalidation audit found this bridge's own
