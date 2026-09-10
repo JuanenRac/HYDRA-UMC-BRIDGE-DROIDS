@@ -9,8 +9,7 @@ GPL-3.0-or-later - see LICENSE
 ## [Unreleased] - Maturity raised to established
 
 - **`spot_transport.py`'s `_send()` now catches real bosdyn-client
-  failures, not just `OSError`** - found in an ecosystem-wide
-  software-improvements audit: a real bosdyn-client failure (expired
+  failures, not just `OSError`** - a real bosdyn-client failure (expired
   auth token, RPC timeout, a real robot fault) raises from bosdyn's own
   exception hierarchy (`bosdyn.client.exceptions.Error`), not `OSError`
   - it used to propagate uncaught instead of degrading to a clean
@@ -62,7 +61,7 @@ proto commands, and each real refusal path. 31 tests total.
 
 ## [0.0.5] - V07-014: the SDK's own real phase-construction rejection reached this bridge's test suite
 
-A second independent revalidation audit found this bridge's own
+A second, closer review found this bridge's own
 `test_unknown_sdk_phase_fails_closed_instead_of_guessing_an_action` still
 constructed a `BridgeJob` directly with a raw `"SOME_FUTURE_PHASE"`
 string - HYDRA-UMC-SDK's own real fix (REV-008) now rejects that AT

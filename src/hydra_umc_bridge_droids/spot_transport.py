@@ -133,7 +133,7 @@ class SpotDroidControl:
         except OSError as error:
             return SpotSendResult(False, f"Spot command send failed: {error}")
         except Exception as error:
-            # Found in an ecosystem-wide software-improvements audit: a
+            # a
             # real bosdyn-client failure (expired auth token, RPC timeout,
             # a real robot fault) raises from bosdyn's own exception
             # hierarchy (bosdyn.client.exceptions.Error), not OSError - it

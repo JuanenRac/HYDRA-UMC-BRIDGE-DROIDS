@@ -67,7 +67,7 @@ class CoordinatorTests(unittest.TestCase):
         self.assertTrue(result.accepted)
         self.assertEqual(result.action, "RETURN_HOME")
 
-    # V07-014 (found in an independent revalidation audit, P2, shared
+    # V07-014 (P2, shared
     # with BRIDGE-AMR/BRIDGE-OPENPNP/BRIDGE-ROS2): HYDRA-UMC-SDK's own
     # real fix (REV-008) now rejects an unrecognised `phase` AT
     # CONSTRUCTION TIME (`BridgeJob.__post_init__` requires a real
