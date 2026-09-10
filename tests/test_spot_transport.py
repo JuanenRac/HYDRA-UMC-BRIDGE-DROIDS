@@ -94,7 +94,7 @@ class SpotDroidControlTests(unittest.TestCase):
         self.assertIn("robot unreachable", result.reason)
 
     def test_a_real_bosdyn_error_degrades_to_a_clean_result_not_a_crash(self):
-        # Found in an ecosystem-wide software-improvements audit: a real
+        # a real
         # bosdyn-client failure (expired auth token, RPC timeout, a real
         # robot fault) raises from bosdyn's own exception hierarchy
         # (bosdyn.client.exceptions.Error), not OSError - it used to
