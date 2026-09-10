@@ -74,10 +74,13 @@ HYDRA-UMC-BRIDGE-DROIDS/
 │       └── spot_transport.py    # 検証済みのDroidDispatchを実際のbosdyn-clientコマンドとして送信
 ├── tests/
 │   ├── test_coordinator.py      # 連携コアの決定論的ユニットテスト
-│   └── test_spot_transport.py   # 疑似ロボットコマンドクライアントに対するbosdyn-clientコマンド形状テスト
+│   ├── test_spot_transport.py   # 疑似ロボットコマンドクライアントに対するbosdyn-clientコマンド形状テスト
+│   ├── spot_emulator.py         # プロトコル忠実な Spot エミュレータ（現実的なテストダブル）
+│   └── test_spot_emulator.py    # Spot エミュレータに対する bridge の振る舞い
 ├── tools/
 │   ├── build_test.py            # 非破壊的なコンパイル+テストランナー (build-test.bat/.sh)
 │   ├── bump_version.py          # pyproject.toml、マニフェスト、CHANGELOG.md を同期
+│   ├── ci_validate.py           # 依存関係なし・非破壊のCIベースライン (.github/workflows/ci.yml が使用)
 │   └── inspect_action_plan.py   # 静的なアクションプランを出力する(トランスポートを開かない)
 ├── docs/
 │   └── BRIDGE_GUIDE.md          # 適用範囲、対応プラットフォーム、スクリプト、ハードウェア受け入れゲート
