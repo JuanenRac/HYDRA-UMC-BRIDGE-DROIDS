@@ -22,6 +22,10 @@ GPL-3.0-or-later - see LICENSE
 
 ---
 
+> **Verifica di onestà - cosa funziona davvero oggi:** il nucleo di coordinamento senza dipendenze (`coordinator.py` con `DroidCoordinator`, che fa passare ogni dispatch attraverso il vero `evaluate_job()` di `HYDRA-UMC-SDK`) e il mittente di comandi Boston Dynamics Spot (`spot_transport.py` con `SpotDroidControl`) sono reali e coperti da 31 test unitari superati (`python tools/build_test.py` - `test_coordinator.py`, `test_spot_transport.py`, più `test_spot_emulator.py` che esegue il bridge contro un emulatore Spot fedele al protocollo ma scritto a mano, non un robot reale). Nulla di tutto ciò è stato testato contro una vera installazione `bosdyn-client`, un vero collegamento di rete, o uno Spot/droide fisico - il `FakeBuilder`/`FakeSink` proprio di `test_spot_transport.py` sostituisce interamente `bosdyn-client` (la libreria reale non deve nemmeno essere installata perché questi test passino), e non esiste ancora un comando `run` dal vivo perché nessun trasporto (Wi-Fi/BT/4G-5G) o piattaforma droide fisica è stata validata. Vedi "Stato attuale e prossimi passi" qui sotto, che lo dice già chiaramente, e `CHANGELOG.md` per cosa è stato esattamente consegnato finora.
+
+---
+
 ## 1. 🛠️ PANORAMICA TECNICA
 
 **HYDRA-UMC-BRIDGE-DROIDS** è il confine di coordinamento bidirezionale e di alto livello tra HYDRA-UMC e una piattaforma droide con gambe o umanoide, raggiungibile via Wi-Fi, Bluetooth o un collegamento cellulare (4G/5G). Non calcola mai l'andatura, l'equilibrio o le traiettorie articolari: valida e inoltra un vocabolario ridotto e con nome di trigger di azione a corpo intero (`WALK_TO`, `PICK_OBJECT`, `PLACE_OBJECT`, `RETURN_HOME`, `HOLD_POSITION`), ciascuno con il proprio contratto reale di parametri obbligatori. Non è un nodo di controllo motore e non può aggirare HYDRA-UMC-SERVER, i limiti dell'MCU, i watchdog o l'E-STOP.
