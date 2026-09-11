@@ -22,6 +22,10 @@ GPL-3.0-or-later - see LICENSE
 
 ---
 
+> **诚实检查——今天真正可运行的部分：** 无依赖的协调核心（`coordinator.py` 中的 `DroidCoordinator`，每次派发都会经过 `HYDRA-UMC-SDK` 自身真正的 `evaluate_job()`）以及波士顿动力 Spot 命令发送器（`spot_transport.py` 中的 `SpotDroidControl`）都是真实的，并由 31 个通过的单元测试覆盖（`python tools/build_test.py` —— `test_coordinator.py`、`test_spot_transport.py`，以及让该桥接对抗一个协议忠实但纯手写的 Spot 模拟器（而非真实机器人）的 `test_spot_emulator.py`）。以上这些都从未针对真实安装的 `bosdyn-client`、真实的网络链路或实体 Spot/机器人进行过验证——`test_spot_transport.py` 自带的 `FakeBuilder`/`FakeSink` 完全替代了 `bosdyn-client`（这些测试甚至不需要安装真正的库就能通过），并且目前还没有实时的 `run` 命令，因为尚未验证任何传输方式（Wi-Fi/BT/4G-5G）或实体机器人平台。详见下文的"当前状态与后续步骤"（已经如实说明了这一点），以及 `CHANGELOG.md` 中目前具体已交付的内容。
+
+---
+
 ## 1. 🛠️ 技术概览
 
 **HYDRA-UMC-BRIDGE-DROIDS** 是 HYDRA-UMC 与有腿式或人形机器人平台之间双向的高层协调边界,可通过 Wi-Fi、蓝牙或蜂窝(4G/5G)链路访问。它从不计算步态、平衡或关节轨迹:它校验并转发一套小型的、具名的全身动作触发器词汇(`WALK_TO`、`PICK_OBJECT`、`PLACE_OBJECT`、`RETURN_HOME`、`HOLD_POSITION`),每一个都有自己真实的必填参数契约。它不是一个电机控制节点,也不能绕过 HYDRA-UMC-SERVER、MCU 限位、看门狗或急停(E-STOP)。
