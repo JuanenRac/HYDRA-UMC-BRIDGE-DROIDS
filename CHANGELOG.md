@@ -1,6 +1,6 @@
 <!-- =============================================================================
 HYDRA-UMC-BRIDGE-DROIDS - Change history
-Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+Copyright (C) JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 GPL-3.0-or-later - see LICENSE
 ============================================================================= -->
 
@@ -59,12 +59,12 @@ bridge's real `SpotDroidControl` end to end against it (9 tests): the
 full stand -> walk -> arrive (via feedback) -> sit lifecycle over real
 proto commands, and each real refusal path. 31 tests total.
 
-## [0.0.5] - V07-014: the SDK's own real phase-construction rejection reached this bridge's test suite
+## [0.0.5] - The SDK's own real phase-construction rejection reached this bridge's test suite
 
 A second, closer review found this bridge's own
 `test_unknown_sdk_phase_fails_closed_instead_of_guessing_an_action` still
 constructed a `BridgeJob` directly with a raw `"SOME_FUTURE_PHASE"`
-string - HYDRA-UMC-SDK's own real fix (REV-008) now rejects that AT
+string - HYDRA-UMC-SDK's own real fix now rejects that AT
 CONSTRUCTION TIME, so the test never even reached the coordinator's own
 assertion. Split in two, same as HYDRA-UMC-BRIDGE-UAV's own
 already-updated test: a new

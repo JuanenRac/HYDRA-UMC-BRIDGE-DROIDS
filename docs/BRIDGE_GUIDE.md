@@ -1,6 +1,6 @@
 <!-- =============================================================================
 HYDRA-UMC-BRIDGE-DROIDS - Technical bridge guide
-Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+Copyright (C) JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 GPL-3.0-or-later - see LICENSE
 ============================================================================= -->
 
@@ -8,7 +8,7 @@ GPL-3.0-or-later - see LICENSE
 
 ## Scope and operating model
 
-This bridge maps a validated `BridgeJob` to a **static droid action plan**. The current core has no transport dependency (no Wi-Fi/Bluetooth/cellular socket, no vendor SDK), so it can be verified on Windows, Linux or CI without a real droid. `DroidCoordinator` emits only a named action trigger - `WALK_TO`, `PICK_OBJECT`, `PLACE_OBJECT`, `RETURN_HOME` or `HOLD_POSITION` - plus whether the job's own real parameters satisfy that action's minimum contract, never a joint command, gait pattern or balance instruction.
+This bridge maps a validated `BridgeJob` to a **static droid action plan**. The current core has no transport dependency (no Wi-Fi/Bluetooth/cellular socket, no vendor SDK), so it can be verified on Windows, Linux or CI without a real droid. `DroidCoordinator.dispatch()` emits only a named action trigger from a `BridgeJob`'s phase - `WALK_TO`, `PICK_OBJECT`, `PLACE_OBJECT`, `RETURN_HOME` or `HOLD_POSITION` - plus whether the job's own real parameters satisfy that action's minimum contract, never a joint command, gait pattern or balance instruction. `STAND`/`SIT` are the same real trigger vocabulary but reached through separate, standalone `stand_request()`/`sit_request()` calls rather than `dispatch()`, since no `JobPhase` naturally means "stand up" or "sit down" - see `spot_transport.py` below for how they reach a real droid.
 
 `PREPARE`/`PROCESS` map to `WALK_TO`, `LOAD` to `PICK_OBJECT`, `UNLOAD` to `PLACE_OBJECT`, `COMPLETE` to `RETURN_HOME`, and `ABORT` to `HOLD_POSITION` - reserved as the one action a droid should always be able to reach regardless of cell state. An unknown SDK phase, or a job missing a required parameter for its own mapped action, is rejected before it is ever forwarded. `DroidCoordinator.dispatch()` itself is still `plan-only`, never a live command - only `spot_transport.py`'s `SpotDroidControl`, given an already-gated dispatch explicitly, ever reaches the network.
 
