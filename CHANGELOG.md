@@ -6,7 +6,7 @@ GPL-3.0-or-later - see LICENSE
 
 # Changelog
 
-## [Unreleased] - Maturity raised to established
+## [0.0.7] - spot_transport.py now catches real bosdyn-client failures, not just OSError
 
 - **`spot_transport.py`'s `_send()` now catches real bosdyn-client
   failures, not just `OSError`** - a real bosdyn-client failure (expired
