@@ -6,6 +6,17 @@ GPL-3.0-or-later - see LICENSE
 
 # Changelog
 
+## [0.0.8] - Platform capability profiles and a simulated droid
+
+- **Platform capability profiles and a simulated droid** (`platform_profiles.py`):
+  `MOBILE_ONLY` and `MOBILE_MANIPULATOR` state the minimum a platform must
+  support for an action trigger to be forwarded to it. `check_against_profile()`
+  refuses an action outside the profile (for example pick/place on a
+  mobile-only platform) instead of sending it to hardware without that
+  capability; `HOLD_POSITION` is never blocked. `SimulatedDroid` records
+  what a profile accepts with pure bookkeeping - it imports no transport
+  and cannot produce real motion. Eight new tests (39 in total).
+
 ## [0.0.7] - spot_transport.py now catches real bosdyn-client failures, not just OSError
 
 - **`spot_transport.py`'s `_send()` now catches real bosdyn-client
