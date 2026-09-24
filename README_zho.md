@@ -34,7 +34,7 @@ GPL-3.0-or-later - see LICENSE
 
 ### 核心特性:
 * ✅ **真实的无依赖协调核心:** `coordinator.py` 中的 `DroidCoordinator` 完全没有导入任何传输相关模块(既无 socket,也无厂商 SDK)——它刻意保持为纯 Python,可以在任何主机上测试,无需连接真实的机器人。*(已实现,并在 `tests/test_coordinator.py` 中测试)*
-* ✅ **真实的具名动作触发器词汇:** `WALK_TO`、`PICK_OBJECT`、`PLACE_OBJECT`、`RETURN_HOME`、`HOLD_POSITION`——绝不是原始关节指令。全身步态、平衡和关节级控制仍然是机器人自身板载控制器(Jetson 级或同等水平)的专属权限。*(已实现)*
+* ✅ **真实的具名动作触发器词汇:** `WALK_TO`, `PICK_OBJECT`, `PLACE_OBJECT`, `RETURN_HOME`, `HOLD_POSITION`, `STAND`, `SIT`——绝不是原始关节命令。全身步态、平衡和关节级控制始终由机器人自身的板载控制器(Jetson 级或同等)负责。`STAND`/`SIT` 是真实的、几乎通用的足式机器人姿态原语——已对照 Boston Dynamics 公开的 [Spot SDK `basic_command.proto`](https://github.com/boston-dynamics/spot-sdk/blob/master/protos/bosdyn/api/basic_command.proto) 核实,其基础移动命令是 `stand`/`sit`/`selfright`/`safe_power_off`,而不只是行走/操作——以独立的 `sit_request()`/`stand_request()` 调用提供,有意置于由 `JobPhase` 驱动的 `dispatch()` 流程之外(没有任何阶段天然意味着“站起来”或“坐下”)。`sit_request()` 始终被接受(真实的降级,理由与 `HOLD_POSITION` 相同);`stand_request()` 要求单元为 `READY` 且机器为 `IDLE`(向生产就绪的真实过渡)。*(已实现)*
 * ✅ **真实的按动作参数校验:** 每个动作触发器都有自己真实的、最小化的必填参数契约(例如 `WALK_TO` 需要 `x`/`y`),在任务被转发之前就会进行检查——缺少其对应动作所需参数的请求会在本地被拒绝,而不会被悄悄传递到下游。*(已实现,已测试)*
 * ✅ **真实的共享安全门控:** 每个通过 `DroidCoordinator.dispatch()` 派发的任务都会由 `HYDRA-UMC-SDK` 的 `bridge_contract` 中的 `evaluate_job()` 评估,这与所有兄弟桥接以及 HYDRA-UMC-SERVER 使用的是同一个门控;生产性阶段需要外部机器处于 `IDLE` 且 HYDRA-UMC 单元处于 `READY`,而 `HOLD_POSITION`(从 `ABORT` 映射而来)在故障期间仍可请求。*(已实现)*
 * ✅ **安全拒绝的阶段路由与静态证据:** 未知的未来 SDK 阶段会被拒绝,而不是被猜测处理。`inspect_action_plan.py` 会输出静态模式 `1.0` 的动作计划,且不会打开任何传输通道。*(已实现,已测试)*
