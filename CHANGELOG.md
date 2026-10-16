@@ -6,6 +6,11 @@ GPL-3.0-or-later - see LICENSE
 
 # Changelog
 
+## [0.0.9] - The gate can use the machine state the droid reports
+
+- **Observed machine state.** `DroidCoordinator.dispatch()` takes the state the droid reported as an optional argument; when it is given it replaces the `machine_state` a requester wrote in the job (a message anybody on the broker may publish) in the shared gate. Without it the claim is still used. `stand_request()` already took the machine state explicitly.
+- Four new tests (tests/test_observed_state.py).
+
 ## [0.0.8] - Platform capability profiles and a simulated droid
 
 - **Platform capability profiles and a simulated droid** (`platform_profiles.py`):

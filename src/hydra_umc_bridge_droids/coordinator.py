@@ -108,7 +108,7 @@ class DroidCoordinator:
         except (KeyError, TypeError, ValueError):
             return False
 
-    def dispatch(self, job: BridgeJob, cell_state: CellState) -> DroidDispatch:
+    def dispatch(self, job: BridgeJob, cell_state: CellState, observed_machine_state: MachineState | None = None) -> DroidDispatch:
         action = self._phase_actions.get(job.phase)
         if action is None:
             return DroidDispatch(False, "none", "job phase has no mapped droid action trigger")
@@ -120,7 +120,8 @@ class DroidCoordinator:
             return DroidDispatch(False, action, f"{action} requires finite numeric x and y coordinates")
         if action == self.PICK_OBJECT and not str(job.parameters["object_id"]).strip():
             return DroidDispatch(False, action, "PICK_OBJECT requires a non-empty object_id")
-        decision = evaluate_job(job, cell_state)
+        # `observed_machine_state` is what the droid reported about itself; when given it replaces the claim written in the job (see HYDRA-UMC-SDK's evaluate_job)
+        decision = evaluate_job(job, cell_state, observed_machine_state)
         return DroidDispatch(decision.allowed, action, decision.reason)
 
     def sit_request(self) -> DroidDispatch:

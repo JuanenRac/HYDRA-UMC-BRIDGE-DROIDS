@@ -10,7 +10,7 @@ GPL-3.0-or-later - see LICENSE
 
 # 🤖 HYDRA-UMC-BRIDGE-DROIDS
 
-<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | 🇩🇪 <b>Deutsch</b> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a></p>
+<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | 🇩🇪 <b>Deutsch</b> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 🔗 Abhängigkeitsfreie Koordinationsgrenze zwischen HYDRA-UMC und laufenden/humanoiden Droiden
 
@@ -22,7 +22,7 @@ GPL-3.0-or-later - see LICENSE
 
 ---
 
-> **Ehrlichkeitscheck - was heute wirklich läuft:** der abhängigkeitsfreie Koordinationskern (`coordinator.py` mit `DroidCoordinator`, das jeden Dispatch durch das echte `evaluate_job()` von `HYDRA-UMC-SDK` leitet) und der Boston-Dynamics-Spot-Befehlssender (`spot_transport.py` mit `SpotDroidControl`) sind real und durch 39 bestehende Unit-Tests abgedeckt (`python tools/build_test.py` - `test_coordinator.py`, `test_spot_transport.py`, plus `test_spot_emulator.py`, das die Bridge gegen einen protokolltreuen, von Hand geschriebenen Spot-Emulator laufen lässt, keinen echten Roboter). Nichts davon wurde gegen eine echte `bosdyn-client`-Installation, eine echte Netzwerkverbindung oder einen physischen Spot/Droiden getestet - `test_spot_transport.py`s eigene `FakeBuilder`/`FakeSink` ersetzen `bosdyn-client` vollständig (die echte Bibliothek muss für das Bestehen dieser Tests nicht einmal installiert sein), und es gibt noch keinen echten `run`-Befehl, weil noch kein Transport (Wi-Fi/BT/4G-5G) oder physische Droiden-Plattform validiert wurde. Siehe „Aktueller Status & Nächste Schritte" weiter unten, das dies bereits klar sagt, sowie `CHANGELOG.md` für das, was bisher genau ausgeliefert wurde.
+> **Ehrlichkeitscheck - was heute wirklich läuft:** der abhängigkeitsfreie Koordinationskern (`coordinator.py` mit `DroidCoordinator`, das jeden Dispatch durch das echte `evaluate_job()` von `HYDRA-UMC-SDK` leitet) und der Boston-Dynamics-Spot-Befehlssender (`spot_transport.py` mit `SpotDroidControl`) sind real und durch 43 bestehende Unit-Tests abgedeckt (`python tools/build_test.py` - `test_coordinator.py`, `test_spot_transport.py`, plus `test_spot_emulator.py`, das die Bridge gegen einen protokolltreuen, von Hand geschriebenen Spot-Emulator laufen lässt, keinen echten Roboter). Nichts davon wurde gegen eine echte `bosdyn-client`-Installation, eine echte Netzwerkverbindung oder einen physischen Spot/Droiden getestet - `test_spot_transport.py`s eigene `FakeBuilder`/`FakeSink` ersetzen `bosdyn-client` vollständig (die echte Bibliothek muss für das Bestehen dieser Tests nicht einmal installiert sein), und es gibt noch keinen echten `run`-Befehl, weil noch kein Transport (Wi-Fi/BT/4G-5G) oder physische Droiden-Plattform validiert wurde. Siehe „Aktueller Status & Nächste Schritte" weiter unten, das dies bereits klar sagt, sowie `CHANGELOG.md` für das, was bisher genau ausgeliefert wurde.
 
 ---
 
@@ -41,6 +41,7 @@ Sie gehört zur Familie **Mobile & Autonomous Bridges** neben `HYDRA-UMC-BRIDGE-
 * ✅ **Echter Boston-Dynamics-Spot-Transport:** `SpotDroidControl` aus `spot_transport.py` sendet einen bereits gegatterten Dispatch als echten bosdyn-client-Befehl (`synchro_stand_command`/`synchro_sit_command`/`synchro_trajectory_command_in_body_frame`, gesendet über `RobotCommandClient.robot_command()`) - ein abgelehnter Dispatch erreicht das Netzwerk niemals. *(implementiert, getestet in `tests/test_spot_transport.py`)*
 * ✅ **Nicht-mutierender Build/Test:** `build-test.bat`/`.sh` kompilieren den Quellcode und führen deterministische Unit-Tests aus, ohne Version oder CHANGELOG zu ändern. *(implementiert, siehe BUILD & AUSFÜHRUNG unten)*
 * 🔜 **Wi-Fi/BT/4G-5G-Adapter für eine Nicht-Spot-Droiden-Plattform** — wird erst eingeführt, nachdem diese Plattform ausgewählt und getestet wurde. *(geplant)*
+* ✅ **Beobachteter Maschinenzustand:** `DroidCoordinator.dispatch()` nimmt den Zustand an, den der Droide gemeldet hat und den das gemeinsame Tor statt des im Auftrag stehenden `machine_state` verwendet (eine Nachricht, die jeder am Broker veröffentlichen kann); ohne Meldung gilt weiterhin die Angabe. *(implementiert, getestet in `tests/test_observed_state.py`)*
 
 ---
 
@@ -79,6 +80,7 @@ HYDRA-UMC-BRIDGE-DROIDS/
 │       └── platform_profiles.py # Fähigkeitsprofile je Plattform + simulierter Droide: kein Transport, keine echte Bewegung
 ├── tests/
 │   ├── test_coordinator.py      # Deterministische Unit-Tests für den Koordinationskern
+│   ├── test_observed_state.py   # Das Tor verwendet den Maschinenzustand, den der Droide meldet
 │   ├── test_spot_transport.py   # bosdyn-client-Befehlsform-Tests gegen einen simulierten Robot-Command-Client
 │   ├── test_platform_profiles.py # Tests der Plattformprofile und des simulierten Droiden
 │   ├── spot_emulator.py         # Protokolltreuer Spot-Emulator (realistischer Test-Double)
@@ -118,13 +120,13 @@ bash build-test.sh
 bash build.sh
 ```
 
-`build-test` kompiliert jedes Modul unter `src/` mit `py_compile` und führt die vollständige, unter `tests/` entdeckte `unittest`-Suite aus (`test_coordinator.py`, `test_spot_transport.py`, `test_spot_emulator.py` - 39 Tests) — deterministisch, ohne echte Droiden-Verbindung, ohne Netzwerk und ohne Versions-/CHANGELOG-Änderung. `build` führt zuerst dieselbe Validierung aus und ruft nur bei Erfolg `tools/bump_version.py` auf, um die Version in `pyproject.toml`, `hydra-umc.project.json` und `CHANGELOG.md` zu synchronisieren. Es gibt noch keinen echten Hardware-`run`-Befehl — dafür sind ein validierter Transportadapter und eine echte Droiden-Plattform erforderlich.
+`build-test` kompiliert jedes Modul unter `src/` mit `py_compile` und führt die vollständige, unter `tests/` entdeckte `unittest`-Suite aus (`test_coordinator.py`, `test_spot_transport.py`, `test_spot_emulator.py` - 43 Tests) — deterministisch, ohne echte Droiden-Verbindung, ohne Netzwerk und ohne Versions-/CHANGELOG-Änderung. `build` führt zuerst dieselbe Validierung aus und ruft nur bei Erfolg `tools/bump_version.py` auf, um die Version in `pyproject.toml`, `hydra-umc.project.json` und `CHANGELOG.md` zu synchronisieren. Es gibt noch keinen echten Hardware-`run`-Befehl — dafür sind ein validierter Transportadapter und eine echte Droiden-Plattform erforderlich.
 
 ---
 
 ## ✅ Aktueller Status & Nächste Schritte
 
-**Heute real:** Version `0.0.8`, funktionsfähig als abhängigkeitsfreier Koordinationskern (`DroidCoordinator`) mit echter Parametervalidierung pro Aktion, ausfallsicherem Phasenrouting, einem statischen `plan-only`-Aktionsschema, einem echten Boston-Dynamics-Spot-Transport (`SpotDroidControl`), der echte bosdyn-client-Befehle sendet, sowie nicht-mutierenden Build-Test-Skripten, die in CI mit SDK-Checkout eingebunden sind.
+**Heute real:** Version `0.0.9`, funktionsfähig als abhängigkeitsfreier Koordinationskern (`DroidCoordinator`) mit echter Parametervalidierung pro Aktion, ausfallsicherem Phasenrouting, einem statischen `plan-only`-Aktionsschema, einem echten Boston-Dynamics-Spot-Transport (`SpotDroidControl`), der echte bosdyn-client-Befehle sendet, sowie nicht-mutierenden Build-Test-Skripten, die in CI mit SDK-Checkout eingebunden sind.
 
 **Integrationsgrenze:** diese Brücke ist ausschließlich eine Koordinationsgrenze — sie ist kein Motorsteuerungsknoten und kann HYDRA-UMC-SERVER, MCU-Grenzen, Watchdogs oder den E-STOP nicht umgehen; jeder versendete Auftrag durchläuft weiterhin dasselbe gemeinsame Gatter, das jede Schwesterbrücke verwendet.
 
