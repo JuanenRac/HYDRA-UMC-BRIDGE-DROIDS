@@ -6,6 +6,9 @@ GPL-3.0-or-later - see LICENSE
 
 # Changelog
 
+## [0.1.1] - Maturity lowered to functional
+- Maturity is functional: the code, tests and documentation are in place, but nothing here has been verified on real hardware yet, so the manifest no longer claims the established level.
+
 ## [0.1.0] - A stop that reaches the robot, goals that are the ones validated and a walk that expires
 
 - **`HOLD_POSITION` has a transport.** `SpotDroidControl.hold_position()` sends bosdyn's `stop_command()` and is never gated. Before, `ABORT` mapped to `HOLD_POSITION` and the dispatch was accepted, but no method sent it, so a walking robot kept going to its goal.

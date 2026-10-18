@@ -123,7 +123,7 @@ bash build.sh
 
 ## ✅ Estado atual e próximos passos
 
-**Real hoje:** versão `0.1.0`, funcional como núcleo de coordenação sem dependências (`DroidCoordinator`) com validação real de parâmetros por ordem, encaminhamento de fases com falha segura, um esquema de ações estático `plan-only`, um emissor real de comandos bosdyn-client para o Spot (`SpotDroidControl`) e scripts build-test que não alteram nada ligados ao CI com um checkout do SDK.
+**Real hoje:** versão `0.1.1`, funcional como núcleo de coordenação sem dependências (`DroidCoordinator`) com validação real de parâmetros por ordem, encaminhamento de fases com falha segura, um esquema de ações estático `plan-only`, um emissor real de comandos bosdyn-client para o Spot (`SpotDroidControl`) e scripts build-test que não alteram nada ligados ao CI com um checkout do SDK.
 
 **Fronteira de integração:** este bridge é apenas uma fronteira de coordenação: não é um nó de controlo de motores e não pode contornar o HYDRA-UMC-SERVER, os limites do MCU, os watchdogs nem a paragem de emergência (E-STOP); cada trabalho despachado continua a passar pela mesma porta partilhada que usam todos os bridges irmãos.
 
