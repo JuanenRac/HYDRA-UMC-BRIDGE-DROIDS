@@ -15,7 +15,7 @@ GPL-3.0-or-later - see LICENSE
 ### 🔗 HYDRA-UMC 与有腿式/人形机器人之间无依赖的协调边界
 
 <p align="center">
-  <img src="https://img.shields.io/badge/许可证-GPL%203.0-blue.svg" alt="GPL 3.0">
+  <img src="https://img.shields.io/badge/许可证-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/Safety-Fails%20Closed-red.svg" alt="故障安全">
 </p>
@@ -126,7 +126,7 @@ bash build.sh
 
 ## ✅ 当前状态与后续步骤
 
-**目前真实的部分:** 版本 `0.1.1`,作为一个无依赖协调核心(`DroidCoordinator`)是功能齐备的,配有真实的按动作参数校验、安全拒绝的阶段路由、静态 `plan-only` 动作模式、一个发送真实 bosdyn-client 命令的真实 Boston Dynamics Spot 传输(`SpotDroidControl`),以及已接入 CI 并带 SDK 检出的非变更式 build-test 脚本。
+**目前真实的部分:** 版本 `0.1.2`,作为一个无依赖协调核心(`DroidCoordinator`)是功能齐备的,配有真实的按动作参数校验、安全拒绝的阶段路由、静态 `plan-only` 动作模式、一个发送真实 bosdyn-client 命令的真实 Boston Dynamics Spot 传输(`SpotDroidControl`),以及已接入 CI 并带 SDK 检出的非变更式 build-test 脚本。
 
 **集成边界:** 本桥接只是一个协调边界——它不是电机控制节点,也不能绕过 HYDRA-UMC-SERVER、MCU 限位、看门狗或急停;每个被派发的任务仍然要经过所有兄弟桥接使用的同一个共享门控。
 
@@ -242,4 +242,4 @@ bash build.sh
 📺 [youtube.com/@electrohobby3d](https://youtube.com/@electrohobby3d)
 
 ## 📜 许可证
-GPL-3.0 - 详见 LICENSE。
+GPL-3.0-or-later - 详见 LICENSE。

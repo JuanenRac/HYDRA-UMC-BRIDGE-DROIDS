@@ -6,6 +6,11 @@ GPL-3.0-or-later - see LICENSE
 
 # Changelog
 
+## [0.1.2]
+
+- Successful incremental build: synchronized package metadata and `hydra-umc.project.json`.
+- The licence is written as GPL-3.0-or-later in every header and in the package metadata.
+
 ## [0.1.1] - Maturity lowered to functional
 - Maturity is functional: the code, tests and documentation are in place, but nothing here has been verified on real hardware yet, so the manifest no longer claims the established level.
 
@@ -17,7 +22,7 @@ GPL-3.0-or-later - see LICENSE
 - **`sit()` stops the robot first** (`stop_first=True`, on by default) instead of sitting it down mid-stride, and does not sit a robot it could not stop. It still does not know where the robot stands.
 - **`stand_request()`** takes its decision from `evaluate_job()` itself instead of repeating the rule, so it cannot drift from the SDK.
 - **Refused commands are not "sent".** The real client returns a command id and raises for a command the robot cannot run; the test emulator now does the same (its refusals used to be a status in a returned object, and a test asserted `sent` for a command the robot had refused), and a response object whose `status` is not OK is not reported as sent.
-- **Documentation.** The README and the guide no longer say the transport is missing, mention Bluetooth, or draw a path to the server that does not exist; they say what is missing before a real Spot can be commanded; `LICENSE` carries the full GPL-3.0 text and the test counts are corrected.
+- **Documentation.** The README and the guide no longer say the transport is missing, mention Bluetooth, or draw a path to the server that does not exist; they say what is missing before a real Spot can be commanded; `LICENSE` carries the full GPL-3.0-or-later text and the test counts are corrected.
 - Not run against a real Spot or the vendor's simulator. The lease, the software E-Stop endpoint with its keep-alive and the motor power-on are not implemented, so this cannot command a real Spot yet; `RETURN_HOME`, `PICK_OBJECT` and `PLACE_OBJECT` have no transport.
 - 14 new tests (57 in total); an unused import in the CI validator removed.
 
