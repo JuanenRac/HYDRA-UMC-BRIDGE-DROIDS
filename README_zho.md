@@ -26,6 +26,16 @@ GPL-3.0-or-later - see LICENSE
 
 ---
 
+## 📋 速览
+
+| | |
+|---|---|
+| 版本 | `0.1.2` |
+| 成熟度 | 可用 |
+| 测试 | 57 (`python tools/build_test.py`) |
+| 技术栈 | Python / Boston Dynamics Spot SDK (bosdyn-client) / HYDRA-UMC-SDK |
+| 真实硬件 | 仅模拟：使用模拟器、替身或仿真测试；此版本没有在真实硬件上运行的记录 |
+
 ## 1. 🛠️ 技术概览
 
 **HYDRA-UMC-BRIDGE-DROIDS** 是 HYDRA-UMC 与有腿式或人形机器人平台之间高层协调边界,可通过 Wi-Fi 或蜂窝(4G/5G)链路访问。它从不计算步态、平衡或关节轨迹:它校验并转发一套小型的、具名的全身动作触发器词汇(`WALK_TO`、`PICK_OBJECT`、`PLACE_OBJECT`、`RETURN_HOME`、`HOLD_POSITION`),每一个都有自己真实的必填参数契约。它不是一个电机控制节点,也不能绕过 HYDRA-UMC-SERVER、MCU 限位、看门狗或急停(E-STOP)。 目前唯一实现的传输是 Boston Dynamics Spot 自带的 API(经 IP 网络,没有蓝牙);现在可以发送 `sit`、`stand`、`walk_to` 和停止,且从未针对真实机器人运行过。
