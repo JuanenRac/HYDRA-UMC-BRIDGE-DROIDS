@@ -22,13 +22,13 @@ GPL-3.0-or-later - see LICENSE
 
 ---
 
-> **诚实检查——今天真正可运行的部分：** 无依赖的协调核心（`coordinator.py` 中的 `DroidCoordinator`，每次派发都会经过 `HYDRA-UMC-SDK` 自身真正的 `evaluate_job()`）以及波士顿动力 Spot 命令发送器（`spot_transport.py` 中的 `SpotDroidControl`）都是真实的，并由 43 个通过的单元测试覆盖（`python tools/build_test.py` —— `test_coordinator.py`、`test_spot_transport.py`，以及让该桥接对抗一个协议忠实但纯手写的 Spot 模拟器（而非真实机器人）的 `test_spot_emulator.py`）。以上这些都从未针对真实安装的 `bosdyn-client`、真实的网络链路或实体 Spot/机器人进行过验证——`test_spot_transport.py` 自带的 `FakeBuilder`/`FakeSink` 完全替代了 `bosdyn-client`（这些测试甚至不需要安装真正的库就能通过），并且目前还没有实时的 `run` 命令，因为尚未验证任何传输方式（Wi-Fi/BT/4G-5G）或实体机器人平台。详见下文的"当前状态与后续步骤"（已经如实说明了这一点），以及 `CHANGELOG.md` 中目前具体已交付的内容。
+> **诚实检查——今天真正可运行的部分：** 无依赖的协调核心（`coordinator.py` 中的 `DroidCoordinator`，每次派发都会经过 `HYDRA-UMC-SDK` 自身真正的 `evaluate_job()`）以及波士顿动力 Spot 命令发送器（`spot_transport.py` 中的 `SpotDroidControl`）都是真实的，并由 57 个通过的单元测试覆盖（`python tools/build_test.py` —— `test_coordinator.py`、`test_spot_transport.py`，以及让该桥接对抗一个协议忠实但纯手写的 Spot 模拟器（而非真实机器人）的 `test_spot_emulator.py`）。以上这些都从未针对真实安装的 `bosdyn-client`、真实的网络链路或实体 Spot/机器人进行过验证——`test_spot_transport.py` 自带的 `FakeBuilder`/`FakeSink` 完全替代了 `bosdyn-client`（这些测试甚至不需要安装真正的库就能通过），并且目前还没有实时的 `run` 命令，因为尚未验证任何传输方式（Wi-Fi/BT/4G-5G）或实体机器人平台。详见下文的"当前状态与后续步骤"（已经如实说明了这一点），以及 `CHANGELOG.md` 中目前具体已交付的内容。
 
 ---
 
 ## 1. 🛠️ 技术概览
 
-**HYDRA-UMC-BRIDGE-DROIDS** 是 HYDRA-UMC 与有腿式或人形机器人平台之间双向的高层协调边界,可通过 Wi-Fi、蓝牙或蜂窝(4G/5G)链路访问。它从不计算步态、平衡或关节轨迹:它校验并转发一套小型的、具名的全身动作触发器词汇(`WALK_TO`、`PICK_OBJECT`、`PLACE_OBJECT`、`RETURN_HOME`、`HOLD_POSITION`),每一个都有自己真实的必填参数契约。它不是一个电机控制节点,也不能绕过 HYDRA-UMC-SERVER、MCU 限位、看门狗或急停(E-STOP)。
+**HYDRA-UMC-BRIDGE-DROIDS** 是 HYDRA-UMC 与有腿式或人形机器人平台之间高层协调边界,可通过 Wi-Fi 或蜂窝(4G/5G)链路访问。它从不计算步态、平衡或关节轨迹:它校验并转发一套小型的、具名的全身动作触发器词汇(`WALK_TO`、`PICK_OBJECT`、`PLACE_OBJECT`、`RETURN_HOME`、`HOLD_POSITION`),每一个都有自己真实的必填参数契约。它不是一个电机控制节点,也不能绕过 HYDRA-UMC-SERVER、MCU 限位、看门狗或急停(E-STOP)。 目前唯一实现的传输是 Boston Dynamics Spot 自带的 API(经 IP 网络,没有蓝牙);现在可以发送 `sit`、`stand`、`walk_to` 和停止,且从未针对真实机器人运行过。
 
 它与 `HYDRA-UMC-BRIDGE-AMR` 和 `HYDRA-UMC-BRIDGE-UAV` 同属 **Mobile & Autonomous Bridges** 家族,并与固定式的 **External Automation Bridges**(CNC、LASER、OPENPNP、PRINTER3D、ROS2)共享同一个 `HYDRA-UMC-SDK` 任务与安全契约——因此无论是移动式还是固定式,任何一个桥接都不能自行发明"可以安全工作"的定义。
 
@@ -39,6 +39,7 @@ GPL-3.0-or-later - see LICENSE
 * ✅ **真实的共享安全门控:** 每个通过 `DroidCoordinator.dispatch()` 派发的任务都会由 `HYDRA-UMC-SDK` 的 `bridge_contract` 中的 `evaluate_job()` 评估,这与所有兄弟桥接以及 HYDRA-UMC-SERVER 使用的是同一个门控;生产性阶段需要外部机器处于 `IDLE` 且 HYDRA-UMC 单元处于 `READY`,而 `HOLD_POSITION`(从 `ABORT` 映射而来)在故障期间仍可请求。*(已实现)*
 * ✅ **安全拒绝的阶段路由与静态证据:** 未知的未来 SDK 阶段会被拒绝,而不是被猜测处理。`inspect_action_plan.py` 会输出静态模式 `1.0` 的动作计划,且不会打开任何传输通道。*(已实现,已测试)*
 * ✅ **真实的 Boston Dynamics Spot 传输:** `spot_transport.py` 的 `SpotDroidControl` 将一个已通过门控的调度作为真实的 bosdyn-client 命令(`synchro_stand_command`/`synchro_sit_command`/`synchro_trajectory_command_in_body_frame`,通过 `RobotCommandClient.robot_command()` 发送)——被拒绝的调度永远不会到达网络。*(已实现,在 `tests/test_spot_transport.py` 中测试)*
+* ✅ **停止、经过验证的目标和会过期的命令:** `hold_position()` 发送 bosdyn 的 `stop_command()`(`ABORT` 的 `HOLD_POSITION` 的传输,从不经过闸门);`sit()` 会先让机器人停下;`DroidDispatch` 携带闸门验证过的参数,`walk_to()` 发送的正是这些 - 仅限 `WALK_TO` 派发,要求有限数值,可选的距离上限(`PlatformProfile.max_walk_distance_m`)和必需的 `command_timeout_s`(它成为命令的 `end_time_secs`),因此本进程消失时机器人会丢弃这次行走;`stand_request()` 的判断直接来自 `evaluate_job()`;不是 `STATUS_OK` 的响应不会被报告为已发送。*(已实现,已用替身和模拟器测试,模拟器现在会抛出 bosdyn 形式的错误;从未针对真实 Spot 运行 - 租约(lease)、带保活的软件急停和上电都尚未完成,因此还不能用它来指挥真实的 Spot,`RETURN_HOME`、`PICK_OBJECT` 和 `PLACE_OBJECT` 没有传输)*
 * ✅ **非变更式构建/测试:** `build-test.bat`/`.sh` 编译源码并运行确定性单元测试,不改变版本或 CHANGELOG。*(已实现,见下方"构建与运行")*
 * 🔜 **面向非 Spot 机器人平台的 Wi-Fi/BT/4G-5G 适配器**——只有在选定并测试了该平台之后才会引入。*(计划中)*
 * ✅ **观测到的机器状态：** `DroidCoordinator.dispatch()` 接受机器人上报的状态，共享闸门使用它而不是作业中写的 `machine_state`（任何人都能在代理上发布的消息）；没有上报时仍使用声明值。*（已实现，已在 `tests/test_observed_state.py` 中测试）*
@@ -49,10 +50,9 @@ GPL-3.0-or-later - see LICENSE
 
 ```mermaid
 flowchart LR
-    DROID["有腿式/人形机器人<br/>(Wi-Fi / BT / 4G-5G)"] -- "动作触发器" --> BRIDGE["BRIDGE-DROIDS<br/>DroidCoordinator.dispatch()"]
+    BRIDGE["BRIDGE-DROIDS<br/>DroidCoordinator.dispatch()"] -- "bosdyn" --> DROID["有腿式/人形机器人<br/>(Wi-Fi / 4G-5G)"]
     BRIDGE -- BridgeJob --> SDK["HYDRA-UMC-SDK<br/>evaluate_job()"]
-    SDK -- GateDecision --> SERVER["HYDRA-UMC-SERVER"]
-    SERVER -- "任务 / 中止" --> MCU["MCU 安全"]
+    SDK -- GateDecision --> BRIDGE
 ```
 
 ---
@@ -63,7 +63,7 @@ flowchart LR
 * **为什么每个动作触发器都有自己明确的必填参数列表。** 没有 `x`/`y` 的 `WALK_TO`,或没有 `object_id` 的 `PICK_OBJECT`,是一种真实的、可被捕获的请求格式错误——在任何传输发生之前就在这里拒绝它,严格优于转发一条不完整的指令然后寄望于机器人自身的固件也能安全地拒绝它。
 * **为什么 `DroidCoordinator.dispatch()` 仍然让每个任务都经过共享的 `evaluate_job()` 门控。** 机器人只是使用与 CNC、LASER、OPENPNP、PRINTER3D 和 ROS2 相同的 `bridge_contract` 的又一个客户端——它不会获得任何绕过所有其他桥接和 HYDRA-UMC-SERVER 所执行的 IDLE/READY 逻辑的特殊待遇。
 * **为什么 `HOLD_POSITION`(源自 `ABORT`)在故障期间仍可请求。** 门控的生产性阶段要求(`IDLE` + `READY`)被刻意地不以同样的方式应用于中止请求——操作员必须始终能够要求机器人原地静止,即使正处于故障中,而不是继续执行它正在做的事情。
-* **为什么传输适配器和具体的命令接口尚未加入本仓库。** 在选定并测试某个具体机器人平台的真实 Wi-Fi/BT/4G-5G 命令协议之前就对其做出承诺,会有引入这个本地无依赖核心无法验证的假设的风险。
+* **为什么尚无 Spot 以外的机器人的传输适配器。** 在选定并测试某个具体机器人平台的真实 Wi-Fi/BT/4G-5G 命令协议之前就对其做出承诺,会有引入这个本地无依赖核心无法验证的假设的风险。
 * **它如何融入整个生态系统。** BRIDGE-DROIDS 位于真实机器人与 `HYDRA-UMC-SDK` → `HYDRA-UMC-SERVER` → MCU 安全之间——它是一个协调边界,绝不是电机控制节点,也不能绕过 HYDRA-UMC-SERVER、MCU 限位、看门狗或急停。
 
 ---
@@ -120,13 +120,13 @@ bash build-test.sh
 bash build.sh
 ```
 
-`build-test` 使用 `py_compile` 编译 `src/` 下的每个模块,并运行在 `tests/` 下发现的完整 `unittest` 套件(`test_coordinator.py`、`test_spot_transport.py`、`test_spot_emulator.py`——共 43 个测试)——以确定性的方式进行,没有真实机器人连接,没有网络,也不会改变版本/CHANGELOG。`build` 会先运行同样的验证,只有成功后才调用 `tools/bump_version.py`,在 `pyproject.toml`、`hydra-umc.project.json` 和 `CHANGELOG.md` 之间同步版本号。目前尚无真正的硬件 `run` 命令——这需要经过验证的传输适配器和真实的机器人平台。
+`build-test` 使用 `py_compile` 编译 `src/` 下的每个模块,并运行在 `tests/` 下发现的完整 `unittest` 套件(所有 `test_*.py` 文件——共 57 个测试)——以确定性的方式进行,没有真实机器人连接,没有网络,也不会改变版本/CHANGELOG。`build` 会先运行同样的验证,只有成功后才调用 `tools/bump_version.py`,在 `pyproject.toml`、`hydra-umc.project.json` 和 `CHANGELOG.md` 之间同步版本号。目前尚无真正的硬件 `run` 命令——这需要经过验证的传输适配器和真实的机器人平台。
 
 ---
 
 ## ✅ 当前状态与后续步骤
 
-**目前真实的部分:** 版本 `0.0.9`,作为一个无依赖协调核心(`DroidCoordinator`)是功能齐备的,配有真实的按动作参数校验、安全拒绝的阶段路由、静态 `plan-only` 动作模式、一个发送真实 bosdyn-client 命令的真实 Boston Dynamics Spot 传输(`SpotDroidControl`),以及已接入 CI 并带 SDK 检出的非变更式 build-test 脚本。
+**目前真实的部分:** 版本 `0.1.0`,作为一个无依赖协调核心(`DroidCoordinator`)是功能齐备的,配有真实的按动作参数校验、安全拒绝的阶段路由、静态 `plan-only` 动作模式、一个发送真实 bosdyn-client 命令的真实 Boston Dynamics Spot 传输(`SpotDroidControl`),以及已接入 CI 并带 SDK 检出的非变更式 build-test 脚本。
 
 **集成边界:** 本桥接只是一个协调边界——它不是电机控制节点,也不能绕过 HYDRA-UMC-SERVER、MCU 限位、看门狗或急停;每个被派发的任务仍然要经过所有兄弟桥接使用的同一个共享门控。
 

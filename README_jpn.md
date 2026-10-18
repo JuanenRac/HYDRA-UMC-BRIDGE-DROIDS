@@ -22,13 +22,13 @@ GPL-3.0-or-later - see LICENSE
 
 ---
 
-> **誠実性チェック - 今日実際に動くもの:** 依存関係のない調整コア（`coordinator.py` の `DroidCoordinator`。すべてのディスパッチは `HYDRA-UMC-SDK` 自身の本物の `evaluate_job()` を通過する）と Boston Dynamics Spot コマンド送信部（`spot_transport.py` の `SpotDroidControl`）は本物であり、43件の通過するユニットテストで検証されている（`python tools/build_test.py` - `test_coordinator.py`、`test_spot_transport.py`、および実際のロボットではなくプロトコルに忠実な手書きの Spot エミュレータに対してブリッジを動かす `test_spot_emulator.py`）。これらはいずれも、本物の `bosdyn-client` インストール、本物のネットワーク接続、あるいは物理的な Spot・droid に対しては検証されていない - `test_spot_transport.py` 独自の `FakeBuilder`/`FakeSink` が `bosdyn-client` を完全に置き換えており（本物のライブラリがインストールされていなくてもこれらのテストは通過する）、トランスポート（Wi-Fi/BT/4G-5G）も物理的な droid プラットフォームもまだ検証されていないため、実機向けの `run` コマンドもまだ存在しない。詳細は下記の「現状と次のステップ」に既に明記されており、これまでに実際に出荷された内容は `CHANGELOG.md` を参照。
+> **誠実性チェック - 今日実際に動くもの:** 依存関係のない調整コア（`coordinator.py` の `DroidCoordinator`。すべてのディスパッチは `HYDRA-UMC-SDK` 自身の本物の `evaluate_job()` を通過する）と Boston Dynamics Spot コマンド送信部（`spot_transport.py` の `SpotDroidControl`）は本物であり、57件の通過するユニットテストで検証されている（`python tools/build_test.py` - `test_coordinator.py`、`test_spot_transport.py`、および実際のロボットではなくプロトコルに忠実な手書きの Spot エミュレータに対してブリッジを動かす `test_spot_emulator.py`）。これらはいずれも、本物の `bosdyn-client` インストール、本物のネットワーク接続、あるいは物理的な Spot・droid に対しては検証されていない - `test_spot_transport.py` 独自の `FakeBuilder`/`FakeSink` が `bosdyn-client` を完全に置き換えており（本物のライブラリがインストールされていなくてもこれらのテストは通過する）、トランスポート（Wi-Fi/BT/4G-5G）も物理的な droid プラットフォームもまだ検証されていないため、実機向けの `run` コマンドもまだ存在しない。詳細は下記の「現状と次のステップ」に既に明記されており、これまでに実際に出荷された内容は `CHANGELOG.md` を参照。
 
 ---
 
 ## 1. 🛠️ 技術概要
 
-**HYDRA-UMC-BRIDGE-DROIDS** は、HYDRA-UMCとレッグ型またはヒューマノイド型のドロイドプラットフォームとの間の双方向・高レベルの連携境界であり、Wi-Fi、Bluetooth、またはセルラー(4G/5G)リンク経由で到達可能である。歩容、バランス、関節軌道を計算することは一切なく、それぞれが独自の実在する必須パラメータ契約を持つ、小規模で命名された全身アクション・トリガーの語彙(`WALK_TO`、`PICK_OBJECT`、`PLACE_OBJECT`、`RETURN_HOME`、`HOLD_POSITION`)を検証・転送するのみである。モーター制御ノードではなく、HYDRA-UMC-SERVER、MCUの限界、ウォッチドッグ、E-STOPを迂回することはできない。
+**HYDRA-UMC-BRIDGE-DROIDS** は、HYDRA-UMCとレッグ型またはヒューマノイド型のドロイドプラットフォームとの間の高レベルの連携境界であり、Wi-Fi、またはセルラー(4G/5G)リンク経由で到達可能である。歩容、バランス、関節軌道を計算することは一切なく、それぞれが独自の実在する必須パラメータ契約を持つ、小規模で命名された全身アクション・トリガーの語彙(`WALK_TO`、`PICK_OBJECT`、`PLACE_OBJECT`、`RETURN_HOME`、`HOLD_POSITION`)を検証・転送するのみである。モーター制御ノードではなく、HYDRA-UMC-SERVER、MCUの限界、ウォッチドッグ、E-STOPを迂回することはできない。 実装済みのトランスポートはBoston Dynamics Spot自身のAPI(IPネットワーク経由)のみで、Bluetoothはない。現時点で送れるのは `sit`、`stand`、`walk_to`、停止で、実機のロボットでは実行されていない。
 
 `HYDRA-UMC-BRIDGE-AMR` および `HYDRA-UMC-BRIDGE-UAV` とともに **Mobile & Autonomous Bridges** ファミリーに属し、静的な **External Automation Bridges**(CNC、LASER、OPENPNP、PRINTER3D、ROS2)と同じ `HYDRA-UMC-SDK` のジョブ・安全契約を共有している —— つまりモバイルであれ静的であれ、いずれのブリッジも独自の「作業に安全」という定義を勝手に作ることはない。
 
@@ -39,6 +39,7 @@ GPL-3.0-or-later - see LICENSE
 * ✅ **実在する共有安全ゲート:** `DroidCoordinator.dispatch()` を通じて送信されるすべてのジョブは、`HYDRA-UMC-SDK` の `bridge_contract` にある `evaluate_job()` によって評価される。これは他のすべての兄弟ブリッジとHYDRA-UMC-SERVERが使うのと同じゲートである。生産フェーズには外部機械が `IDLE` であり、HYDRA-UMCセルが `READY` であることが必要だが、(`ABORT` からマッピングされる)`HOLD_POSITION` は故障中でも要求可能なままである。*(実装済み)*
 * ✅ **フェイルクローズのフェーズルーティングと静的エビデンス:** 未知の将来SDKフェーズは、推測されるのではなく拒否される。`inspect_action_plan.py` はトランスポートを一切開かずに静的スキーマ `1.0` のアクションプランを出力する。*(実装・テスト済み)*
 * ✅ **実際の Boston Dynamics Spot トランスポート:** `spot_transport.py` の `SpotDroidControl` は、すでにゲートを通過したディスパッチを、実際の bosdyn-client コマンド（`synchro_stand_command`/`synchro_sit_command`/`synchro_trajectory_command_in_body_frame`、`RobotCommandClient.robot_command()` 経由で送信）として送信する —— 拒否されたディスパッチがネットワークに届くことは決してない。*(実装済み、`tests/test_spot_transport.py` でテスト済み)*
+* ✅ **停止、検証済みの目標、期限切れになるコマンド:** `hold_position()` はbosdynの `stop_command()` を送ります(`ABORT` の `HOLD_POSITION` のトランスポートで、ゲートを通しません)。`sit()` は先にロボットを停止させます。`DroidDispatch` はゲートが検証したパラメータを持ち、`walk_to()` はまさにそれだけを送ります - `WALK_TO` のディスパッチに限り、有限の数値、任意の距離上限(`PlatformProfile.max_walk_distance_m`)、そしてコマンドの `end_time_secs` になる必須の `command_timeout_s` を伴い、このプロセスが消えるとロボットは歩行を破棄します。`stand_request()` は `evaluate_job()` 自身から判断を得ます。`STATUS_OK` でない応答は送信済みとは扱いません。*(実装済み、ダブルとエミュレーター(bosdyn形式のエラーを送出するようになりました)でテスト済み。実際のSpotでは未実行 - リース、キープアライブ付きのソフトウェアE-Stop、電源投入は未実装のため、これだけでは実機のSpotを動かせません。`RETURN_HOME`、`PICK_OBJECT`、`PLACE_OBJECT` にはトランスポートがありません)*
 * ✅ **非破壊的なビルド/テスト:** `build-test.bat`/`.sh` はソースをコンパイルし、バージョンやCHANGELOGを変更せずに決定論的なユニットテストを実行する。*(実装済み、下記「ビルドと実行」を参照)*
 * 🔜 **Spot 以外のドロイドプラットフォーム向けの Wi-Fi/BT/4G-5G アダプター** —— そのプラットフォームが選定・テストされた後にのみ導入される。*(計画中)*
 * ✅ **観測した機器の状態:** `DroidCoordinator.dispatch()` はドロイドが報告した状態を受け取り、共有ゲートはジョブに書かれた `machine_state`（ブローカー上の誰でも発行できるメッセージ）の代わりにそれを使います。報告がない場合は従来どおり申告値を使います。*（実装済み、`tests/test_observed_state.py` でテスト済み）*
@@ -49,10 +50,9 @@ GPL-3.0-or-later - see LICENSE
 
 ```mermaid
 flowchart LR
-    DROID["レッグ型 / ヒューマノイド型ドロイド<br/>(Wi-Fi / BT / 4G-5G)"] -- "アクショントリガー" --> BRIDGE["BRIDGE-DROIDS<br/>DroidCoordinator.dispatch()"]
+    BRIDGE["BRIDGE-DROIDS<br/>DroidCoordinator.dispatch()"] -- "bosdyn" --> DROID["レッグ型 / ヒューマノイド型ドロイド<br/>(Wi-Fi / 4G-5G)"]
     BRIDGE -- BridgeJob --> SDK["HYDRA-UMC-SDK<br/>evaluate_job()"]
-    SDK -- GateDecision --> SERVER["HYDRA-UMC-SERVER"]
-    SERVER -- "ジョブ / 中止" --> MCU["MCU安全"]
+    SDK -- GateDecision --> BRIDGE
 ```
 
 ---
@@ -63,7 +63,7 @@ flowchart LR
 * **なぜ各アクション・トリガーは独自の明示的な必須パラメータリストを持つのか。** `x`/`y` のない `WALK_TO`、あるいは `object_id` のない `PICK_OBJECT` は、実在する検出可能なリクエスト形式のエラーである —— トランスポートに至る前にここで拒否することは、不完全な指示を転送してドロイド自身のファームウェアも安全に拒否することを期待するよりも、明確に優れている。
 * **なぜ `DroidCoordinator.dispatch()` はそれでも共有の `evaluate_job()` ゲートを通してすべてのジョブを流すのか。** ドロイドは、CNC、LASER、OPENPNP、PRINTER3D、ROS2が使うのと同じ `bridge_contract` の単なる別のクライアントに過ぎない —— 他のすべてのブリッジやHYDRA-UMC-SERVERが強制するIDLE/READYロジックを特別に迂回することはない。
 * **なぜ(`ABORT` からの)`HOLD_POSITION` は故障中でも要求可能なままなのか。** ゲートの生産フェーズ要件(`IDLE` + `READY`)は、中止リクエストには意図的に同じ方法で適用されない —— オペレーターは、それまで行っていたことを続けるのではなく、故障の最中であってもドロイドにその場で静止するよう常に要求できなければならない。
-* **なぜトランスポートアダプターと具体的なコマンドインターフェースがまだこのリポジトリにないのか。** 特定のドロイドプラットフォームの実際のWi-Fi/BT/4G-5Gコマンドプロトコルに、それが選定・テストされる前にコミットすることは、この依存関係のないローカルコアが検証できない前提を組み込むリスクを伴う。
+* **なぜSpot以外のドロイド向けのトランスポートアダプターがまだないのか。** 特定のドロイドプラットフォームの実際のWi-Fi/BT/4G-5Gコマンドプロトコルに、それが選定・テストされる前にコミットすることは、この依存関係のないローカルコアが検証できない前提を組み込むリスクを伴う。
 * **エコシステムの他部分とどう関係するか。** BRIDGE-DROIDSは実際のドロイドと `HYDRA-UMC-SDK` → `HYDRA-UMC-SERVER` → MCU安全との間に位置する —— 連携境界であり、モーター制御ノードでは決してなく、HYDRA-UMC-SERVER、MCUの限界、ウォッチドッグ、E-STOPを迂回することはできない。
 
 ---
@@ -120,13 +120,13 @@ bash build-test.sh
 bash build.sh
 ```
 
-`build-test` は `src/` 配下の各モジュールを `py_compile` でコンパイルし、`tests/` 配下で検出される `unittest` の全スイート(`test_coordinator.py`、`test_spot_transport.py`、`test_spot_emulator.py` - 43件のテスト)を実行する —— 実際のドロイド接続もネットワークもなく決定論的に動作し、バージョンやCHANGELOGを変更しない。`build` はまず同じ検証を実行し、成功した場合のみ `tools/bump_version.py` を呼び出して `pyproject.toml`、`hydra-umc.project.json`、`CHANGELOG.md` の間でバージョンを同期する。実際のハードウェア向け `run` コマンドはまだ存在しない —— それには検証済みのトランスポートアダプターと実際のドロイドプラットフォームが必要である。
+`build-test` は `src/` 配下の各モジュールを `py_compile` でコンパイルし、`tests/` 配下で検出される `unittest` の全スイート(すべての `test_*.py` - 57件のテスト)を実行する —— 実際のドロイド接続もネットワークもなく決定論的に動作し、バージョンやCHANGELOGを変更しない。`build` はまず同じ検証を実行し、成功した場合のみ `tools/bump_version.py` を呼び出して `pyproject.toml`、`hydra-umc.project.json`、`CHANGELOG.md` の間でバージョンを同期する。実際のハードウェア向け `run` コマンドはまだ存在しない —— それには検証済みのトランスポートアダプターと実際のドロイドプラットフォームが必要である。
 
 ---
 
 ## ✅ 現状と次のステップ
 
-**現時点で実在するもの:** バージョン `0.0.9`。実在するアクションごとのパラメータ検証、フェイルクローズのフェーズルーティング、静的な `plan-only` アクションスキーマ、実際の bosdyn-client コマンドを送信する実際の Boston Dynamics Spot トランスポート(`SpotDroidControl`)、SDKチェックアウトを伴いCIに組み込まれた非破壊的なbuild-testスクリプトを備える依存関係なしの連携コア(`DroidCoordinator`)として機能している。
+**現時点で実在するもの:** バージョン `0.1.0`。実在するアクションごとのパラメータ検証、フェイルクローズのフェーズルーティング、静的な `plan-only` アクションスキーマ、実際の bosdyn-client コマンドを送信する実際の Boston Dynamics Spot トランスポート(`SpotDroidControl`)、SDKチェックアウトを伴いCIに組み込まれた非破壊的なbuild-testスクリプトを備える依存関係なしの連携コア(`DroidCoordinator`)として機能している。
 
 **統合境界:** このブリッジは連携境界に過ぎない —— モーター制御ノードではなく、HYDRA-UMC-SERVER、MCUの限界、ウォッチドッグ、E-STOPを迂回することはできない。送信されるすべてのジョブは、依然としてすべての兄弟ブリッジが使う同じ共有ゲートを通過する。
 

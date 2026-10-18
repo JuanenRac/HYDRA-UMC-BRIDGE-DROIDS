@@ -27,6 +27,9 @@ _POSTURE_AND_MOTION = frozenset({_C.WALK_TO, _C.RETURN_HOME, _C.HOLD_POSITION, _
 class PlatformProfile:
     name: str
     actions: frozenset[str]
+    # The farthest a single WALK_TO may go from where the robot stands, in metres.
+    # None means the profile sets no limit (a deployment sets its own).
+    max_walk_distance_m: float | None = None
 
     def supports(self, action: str) -> bool:
         return action in self.actions

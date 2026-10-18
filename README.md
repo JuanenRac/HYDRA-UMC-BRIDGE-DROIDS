@@ -22,13 +22,13 @@ GPL-3.0-or-later - see LICENSE
 
 ---
 
-> **Honesty check - what actually runs today:** the dependency-free coordination core (`coordinator.py`'s `DroidCoordinator`, funneling every dispatch through `HYDRA-UMC-SDK`'s own `evaluate_job()`) and the Boston Dynamics Spot command sender (`spot_transport.py`'s `SpotDroidControl`) are real and covered by 43 passing unit tests (`python tools/build_test.py` - `test_coordinator.py`, `test_spot_transport.py`, plus `test_spot_emulator.py` running the bridge against a protocol-faithful, hand-written Spot emulator, not a live robot). None of it has been exercised against a real bosdyn-client install, a real network link, or a physical Spot/droid - `test_spot_transport.py`'s own `FakeBuilder`/`FakeSink` stand in for `bosdyn-client` entirely (the real library isn't even required to be installed for these tests to pass), and there is no live `run` command yet because no transport (Wi-Fi/BT/4G-5G) or physical droid platform has been validated. See "Current Status & Next Steps" below, which already states this plainly, and `CHANGELOG.md` for exactly what has shipped so far.
+> **Honesty check - what actually runs today:** the dependency-free coordination core (`coordinator.py`'s `DroidCoordinator`, funneling every dispatch through `HYDRA-UMC-SDK`'s own `evaluate_job()`) and the Boston Dynamics Spot command sender (`spot_transport.py`'s `SpotDroidControl`) are real and covered by 57 passing unit tests (`python tools/build_test.py` - `test_coordinator.py`, `test_spot_transport.py`, plus `test_spot_emulator.py` running the bridge against a protocol-faithful, hand-written Spot emulator, not a live robot). None of it has been exercised against a real bosdyn-client install, a real network link, or a physical Spot/droid - `test_spot_transport.py`'s own `FakeBuilder`/`FakeSink` stand in for `bosdyn-client` entirely (the real library isn't even required to be installed for these tests to pass), and there is no live `run` command yet because no transport (Wi-Fi/BT/4G-5G) or physical droid platform has been validated. See "Current Status & Next Steps" below, which already states this plainly, and `CHANGELOG.md` for exactly what has shipped so far.
 
 ---
 
 ## 1. 🛠️ TECHNICAL OVERVIEW
 
-**HYDRA-UMC-BRIDGE-DROIDS** is the bidirectional, high-level coordination boundary between HYDRA-UMC and a legged or humanoid droid platform, reachable over Wi-Fi, Bluetooth or a cellular (4G/5G) link. It never computes gait, balance or joint trajectories: it validates and forwards a small, named vocabulary of whole-body action triggers (`WALK_TO`, `PICK_OBJECT`, `PLACE_OBJECT`, `RETURN_HOME`, `HOLD_POSITION`, `STAND`, `SIT`), each with its own real required-parameter contract. It is not a motor-control node, and it cannot bypass HYDRA-UMC-SERVER, MCU limits, watchdogs or E-STOP.
+**HYDRA-UMC-BRIDGE-DROIDS** is the high-level coordination boundary between HYDRA-UMC and a legged or humanoid droid platform, reachable over Wi-Fi or a cellular (4G/5G) link. It never computes gait, balance or joint trajectories: it validates and forwards a small, named vocabulary of whole-body action triggers (`WALK_TO`, `PICK_OBJECT`, `PLACE_OBJECT`, `RETURN_HOME`, `HOLD_POSITION`, `STAND`, `SIT`), each with its own real required-parameter contract. It is not a motor-control node, and it cannot bypass HYDRA-UMC-SERVER, MCU limits, watchdogs or E-STOP. The only transport implemented is Boston Dynamics Spot's own API over an IP network (there is no Bluetooth); today it can send `sit`, `stand`, `walk_to` and the stop, and it has not been run against a real robot.
 
 It belongs to the **Mobile & Autonomous Bridges** family alongside `HYDRA-UMC-BRIDGE-AMR` and `HYDRA-UMC-BRIDGE-UAV`, and shares the same `HYDRA-UMC-SDK` job-and-safety contract as the stationary **External Automation Bridges** (CNC, LASER, OPENPNP, PRINTER3D, ROS2) - so no bridge, mobile or stationary, invents its own definition of "safe to work".
 
@@ -39,6 +39,7 @@ It belongs to the **Mobile & Autonomous Bridges** family alongside `HYDRA-UMC-BR
 * ✅ **Real shared safety gate:** every job dispatched through `DroidCoordinator.dispatch()` is evaluated by `evaluate_job()` from `HYDRA-UMC-SDK`'s `bridge_contract`, the same gate every sibling bridge and HYDRA-UMC-SERVER use; a productive phase requires an `IDLE` external machine and a `READY` HYDRA-UMC cell, while a `HOLD_POSITION` (mapped from `ABORT`) remains requestable during a fault. *(implemented)*
 * ✅ **Fail-closed phase routing and static evidence:** an unknown future SDK phase is denied rather than guessed at. `inspect_action_plan.py` emits the static schema `1.1` action plan (now including `STAND`/`SIT`) without opening any transport. *(implemented, tested)*
 * ✅ **Real Boston Dynamics Spot transport:** `spot_transport.py`'s `SpotDroidControl` sends an already-gated dispatch as a real bosdyn-client command (`synchro_stand_command`/`synchro_sit_command`/`synchro_trajectory_command_in_body_frame`, sent via `RobotCommandClient.robot_command()`) - a rejected dispatch never reaches the network. *(implemented, tested in `tests/test_spot_transport.py`)*
+* ✅ **Stops, validated goals and a command that expires:** `hold_position()` sends bosdyn's `stop_command()` (the transport of `ABORT`'s `HOLD_POSITION`, never gated); `sit()` stops the robot first; a `DroidDispatch` carries the parameters the gate validated and `walk_to()` sends exactly those - only for a `WALK_TO` dispatch, with finite numbers, an optional distance limit (`PlatformProfile.max_walk_distance_m`) and a required `command_timeout_s` that becomes the command's `end_time_secs`, so the robot drops a walk when this process goes away; `stand_request()` takes its decision from `evaluate_job()` itself; a response that is not `STATUS_OK` is not reported as sent. *(implemented, tested against fakes and the emulator, which now raises bosdyn-shaped errors; never run against a real Spot - the lease, the software E-Stop with its keep-alive and the power-on are NOT done, so a real Spot cannot be commanded with this yet, and `RETURN_HOME`, `PICK_OBJECT` and `PLACE_OBJECT` have no transport)*
 * ✅ **Non-mutating build/test:** `build-test.bat`/`.sh` compile the source and run deterministic unit tests without changing version or CHANGELOG. *(implemented, see BUILD & RUN below)*
 * 🔜 **A generic Wi-Fi/BT/4G-5G transport adapter for a non-Spot droid platform** - introduced only after that platform is selected and tested. *(planned)*
 * ✅ **Observed machine state:** `DroidCoordinator.dispatch()` accepts the state the droid reported, which the shared gate uses instead of the `machine_state` written in the job (a message anybody on the broker may publish); without a report the claim is still used. *(implemented, tested in `tests/test_observed_state.py`)*
@@ -49,10 +50,9 @@ It belongs to the **Mobile & Autonomous Bridges** family alongside `HYDRA-UMC-BR
 
 ```mermaid
 flowchart LR
-    DROID["Legged / Humanoid Droid<br/>(Wi-Fi / BT / 4G-5G)"] -- "action trigger" --> BRIDGE["BRIDGE-DROIDS<br/>DroidCoordinator.dispatch()"]
+    BRIDGE["BRIDGE-DROIDS<br/>DroidCoordinator.dispatch()"] -- "bosdyn" --> DROID["Legged / Humanoid Droid<br/>(Wi-Fi / 4G-5G)"]
     BRIDGE -- BridgeJob --> SDK["HYDRA-UMC-SDK<br/>evaluate_job()"]
-    SDK -- GateDecision --> SERVER["HYDRA-UMC-SERVER"]
-    SERVER -- "job / abort" --> MCU["MCU Safety"]
+    SDK -- GateDecision --> BRIDGE
 ```
 
 ---
@@ -63,7 +63,7 @@ flowchart LR
 * **Why each action trigger has its own explicit required-parameter list.** A `WALK_TO` with no `x`/`y`, or a `PICK_OBJECT` with no `object_id`, is a real, catchable request-shape error - rejecting it here, before any transport, is strictly better than forwarding an incomplete instruction and hoping the droid's own firmware rejects it safely too.
 * **Why `DroidCoordinator.dispatch()` still funnels every job through the shared `evaluate_job()` gate.** A droid is just another client of the same `bridge_contract` that CNC, LASER, OPENPNP, PRINTER3D and ROS2 use - it gets no special bypass of the IDLE/READY logic every other bridge and HYDRA-UMC-SERVER enforce.
 * **Why `HOLD_POSITION` (from `ABORT`) stays requestable during a fault.** The gate's productive-phase requirement (`IDLE` + `READY`) is intentionally not applied the same way to an abort request - an operator must always be able to ask a droid to freeze in place, even mid-fault, rather than continuing whatever it was doing.
-* **Why the transport adapter and a concrete command interface are not in this repo yet.** Committing to one droid platform's real Wi-Fi/BT/4G-5G command protocol before it is selected and tested would risk baking in assumptions this local, dependency-free core cannot verify.
+* **Why there is no transport adapter for a droid other than Spot yet.** Committing to one droid platform's real Wi-Fi/BT/4G-5G command protocol before it is selected and tested would risk baking in assumptions this local, dependency-free core cannot verify.
 * **How this fits the rest of the ecosystem.** BRIDGE-DROIDS sits between a real droid and `HYDRA-UMC-SDK` → `HYDRA-UMC-SERVER` → MCU safety - it is a coordination boundary, never a motor-control node, and it cannot bypass HYDRA-UMC-SERVER, MCU limits, watchdogs or E-STOP.
 
 ---
@@ -120,13 +120,13 @@ bash build-test.sh
 bash build.sh
 ```
 
-`build-test` compiles every module under `src/` with `py_compile` and runs the full `unittest` suite discovered under `tests/` (`test_coordinator.py`, `test_spot_transport.py`, `test_spot_emulator.py` - 43 tests) - deterministically, with no real droid connection, no network and no version/CHANGELOG change. `build` runs that same validation first and, only on success, calls `tools/bump_version.py` to synchronize the version across `pyproject.toml`, `hydra-umc.project.json` and `CHANGELOG.md`. There is no live hardware `run` command yet - that requires a validated transport adapter and a real droid platform.
+`build-test` compiles every module under `src/` with `py_compile` and runs the full `unittest` suite discovered under `tests/` (every `test_*.py` file - 57 tests) - deterministically, with no real droid connection, no network and no version/CHANGELOG change. `build` runs that same validation first and, only on success, calls `tools/bump_version.py` to synchronize the version across `pyproject.toml`, `hydra-umc.project.json` and `CHANGELOG.md`. There is no live hardware `run` command yet - that requires a validated transport adapter and a real droid platform.
 
 ---
 
 ## ✅ Current Status & Next Steps
 
-**Real today:** version `0.0.9`, functional as a dependency-free coordination core (`DroidCoordinator`) with real per-action parameter validation, fail-closed phase routing, a static `plan-only` action schema, a real bosdyn-client Spot command sender (`SpotDroidControl`), and non-mutating build-test scripts wired into CI with an SDK checkout.
+**Real today:** version `0.1.0`, functional as a dependency-free coordination core (`DroidCoordinator`) with real per-action parameter validation, fail-closed phase routing, a static `plan-only` action schema, a real bosdyn-client Spot command sender (`SpotDroidControl`), and non-mutating build-test scripts wired into CI with an SDK checkout.
 
 **Integration boundary:** this bridge is a coordination boundary only - it is not a motor-control node, and it cannot bypass HYDRA-UMC-SERVER, MCU limits, watchdogs or E-STOP; every dispatched job still passes through the same shared gate every sibling bridge uses.
 

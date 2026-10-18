@@ -34,6 +34,10 @@ class FakeBuilder:
         self.calls.append(("sit",))
         return "SIT_COMMAND"
 
+    def stop_command(self):
+        self.calls.append(("stop",))
+        return "STOP_COMMAND"
+
     def synchro_trajectory_command_in_body_frame(self, goal_x_rt_body, goal_y_rt_body, goal_heading_rt_body, frame_tree_snapshot):
         self.calls.append(("trajectory", goal_x_rt_body, goal_y_rt_body, goal_heading_rt_body, frame_tree_snapshot))
         return "TRAJECTORY_COMMAND"
@@ -42,12 +46,18 @@ class FakeBuilder:
 class FakeSink:
     def __init__(self):
         self.sent: list[object] = []
+        self.end_times: list[float | None] = []
         self.raise_on_send: Exception | None = None
 
     def robot_command(self, command, end_time_secs=None):
         if self.raise_on_send:
             raise self.raise_on_send
         self.sent.append(command)
+        self.end_times.append(end_time_secs)
+
+
+def walk(x=1.5, y=-2.5):
+    return DroidDispatch(True, "WALK_TO", "cell and external machine are ready", parameters={"x": x, "y": y})
 
 
 class SpotDroidControlTests(unittest.TestCase):
@@ -56,11 +66,33 @@ class SpotDroidControlTests(unittest.TestCase):
         self.sink = FakeSink()
         self.control = SpotDroidControl()
 
-    def test_sit_is_always_allowed_and_sends_the_real_command(self):
+    def test_sit_is_always_allowed_and_sends_the_real_command_after_stopping_the_robot(self):
         result = self.control.sit(self.builder, self.sink)
         self.assertTrue(result.sent)
-        self.assertEqual(self.builder.calls, [("sit",)])
+        self.assertEqual(self.builder.calls, [("stop",), ("sit",)])
+        self.assertEqual(self.sink.sent, ["STOP_COMMAND", "SIT_COMMAND"])
+
+    def test_sit_can_be_asked_not_to_stop_first(self):
+        self.assertTrue(self.control.sit(self.builder, self.sink, stop_first=False).sent)
         self.assertEqual(self.sink.sent, ["SIT_COMMAND"])
+
+    def test_sit_does_not_sit_a_robot_it_could_not_stop(self):
+        self.sink.raise_on_send = OSError("robot unreachable")
+        result = self.control.sit(self.builder, self.sink)
+        self.assertFalse(result.sent)
+        self.assertIn("stopped first", result.reason)
+        self.assertEqual(self.builder.calls, [("stop",)])
+
+    def test_hold_position_sends_the_stop_command_and_needs_no_gate(self):
+        for dispatch in (None, DroidDispatch(True, "HOLD_POSITION", "abort requests are always forwarded to the authorised safety path")):
+            self.sink.sent.clear()
+            self.assertTrue(self.control.hold_position(self.builder, self.sink, dispatch).sent)
+            self.assertEqual(self.sink.sent, ["STOP_COMMAND"])
+
+    def test_hold_position_does_not_act_on_a_dispatch_of_another_action(self):
+        result = self.control.hold_position(self.builder, self.sink, walk())
+        self.assertFalse(result.sent)
+        self.assertEqual(self.sink.sent, [])
 
     def test_stand_requires_a_ready_cell_and_idle_machine_before_any_send(self):
         rejected = self.control.stand(self.builder, self.sink, CellState.INHIBITED, MachineState.IDLE)
@@ -74,18 +106,53 @@ class SpotDroidControlTests(unittest.TestCase):
 
     def test_walk_to_rejected_dispatch_is_never_built_or_sent(self):
         rejected = DroidDispatch(False, "WALK_TO", "cell is FAULT, not READY")
-        result = self.control.walk_to(self.builder, self.sink, rejected, 1.0, 2.0, 0.0, frame_tree_snapshot=None)
+        result = self.control.walk_to(self.builder, self.sink, rejected, frame_tree_snapshot=None, command_timeout_s=10.0)
         self.assertFalse(result.sent)
         self.assertEqual(self.builder.calls, [])
         self.assertEqual(self.sink.sent, [])
 
     def test_walk_to_accepted_dispatch_builds_the_real_trajectory_command(self):
-        accepted = DroidDispatch(True, "WALK_TO", "cell and external machine are ready")
         snapshot = object()
-        result = self.control.walk_to(self.builder, self.sink, accepted, 1.5, -2.5, 0.3, frame_tree_snapshot=snapshot)
+        result = self.control.walk_to(
+            self.builder, self.sink, walk(), frame_tree_snapshot=snapshot, command_timeout_s=20.0, goal_heading=0.3, clock=lambda: 1000.0
+        )
         self.assertTrue(result.sent)
+        # the goal is the one the gate validated, and the command expires 20 s from "now"
         self.assertEqual(self.builder.calls, [("trajectory", 1.5, -2.5, 0.3, snapshot)])
         self.assertEqual(self.sink.sent, ["TRAJECTORY_COMMAND"])
+        self.assertEqual(self.sink.end_times, [1020.0])
+
+    def test_walk_to_only_acts_on_a_walk_to_dispatch(self):
+        # an accepted PICK_OBJECT / RETURN_HOME dispatch is not a permit to walk
+        for action in ("PICK_OBJECT", "RETURN_HOME", "PLACE_OBJECT", "HOLD_POSITION"):
+            with self.subTest(action=action):
+                other = DroidDispatch(True, action, "ok", parameters={"x": 1.0, "y": 1.0})
+                result = self.control.walk_to(self.builder, self.sink, other, frame_tree_snapshot=None, command_timeout_s=10.0)
+                self.assertFalse(result.sent)
+        self.assertEqual(self.sink.sent, [])
+
+    def test_walk_to_refuses_a_goal_the_gate_never_validated(self):
+        for parameters in ({}, {"x": 1.0}, {"x": float("nan"), "y": 0.0}, {"x": 1.0, "y": float("inf")}, {"x": "1", "y": "2"}, {"x": True, "y": 0.0}):
+            with self.subTest(parameters=parameters):
+                dispatch = DroidDispatch(True, "WALK_TO", "ok", parameters=parameters)
+                self.assertFalse(self.control.walk_to(self.builder, self.sink, dispatch, frame_tree_snapshot=None, command_timeout_s=10.0).sent)
+        self.assertEqual(self.sink.sent, [])
+
+    def test_walk_to_needs_a_finite_positive_timeout_and_a_finite_heading(self):
+        for timeout in (0.0, -1.0, float("nan"), float("inf"), None):
+            with self.subTest(timeout=timeout):
+                self.assertFalse(self.control.walk_to(self.builder, self.sink, walk(), frame_tree_snapshot=None, command_timeout_s=timeout).sent)
+        self.assertFalse(
+            self.control.walk_to(self.builder, self.sink, walk(), frame_tree_snapshot=None, command_timeout_s=10.0, goal_heading=float("nan")).sent
+        )
+        self.assertEqual(self.sink.sent, [])
+
+    def test_walk_to_refuses_a_goal_beyond_the_distance_limit(self):
+        far = self.control.walk_to(self.builder, self.sink, walk(30.0, 40.0), frame_tree_snapshot=None, command_timeout_s=10.0, max_distance_m=49.0)
+        self.assertFalse(far.sent)
+        self.assertEqual(self.sink.sent, [])
+        near = self.control.walk_to(self.builder, self.sink, walk(30.0, 40.0), frame_tree_snapshot=None, command_timeout_s=10.0, max_distance_m=50.0)
+        self.assertTrue(near.sent)
 
     def test_a_transport_failure_is_reported_not_swallowed(self):
         self.sink.raise_on_send = OSError("robot unreachable")

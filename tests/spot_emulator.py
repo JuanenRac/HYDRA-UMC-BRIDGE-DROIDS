@@ -13,12 +13,15 @@ sentinels) and `FakeSink` (records one call, or raises). A real Spot's
   * accepts a real `RobotCommand` protobuf whose
     `synchronized_command.mobility_command` carries exactly one of a
     `stand_request` / `sit_request` / `se2_trajectory_request`;
-  * returns a `RobotCommandResponse` with an integer `command_id` and a
-    `status` from the real `RobotCommandResponse.Status` enum
-    (`STATUS_OK`, `STATUS_NOT_POWERED_ON`, `STATUS_EXPIRED`,
-    `STATUS_TOO_DISTANT`, `STATUS_BEHAVIOR_FAULT`, ...) - it does NOT
-    raise for a command the robot simply cannot execute, only for a real
-    RPC / lease / time-sync failure;
+  * answers a command it accepts with an integer command id, and turns any
+    other `RobotCommandResponse.Status` (`STATUS_NOT_POWERED_ON`,
+    `STATUS_EXPIRED`, `STATUS_TOO_DISTANT`, `STATUS_BEHAVIOR_FAULT`, ...)
+    into an exception of bosdyn's own hierarchy (`NotPoweredOnError`,
+    `ExpiredError`, `TooDistantError`, `BehaviorFaultError`, ...) - this
+    emulator does the same, with `EmulatorBosdynError` as the base class a
+    test installs as `bosdyn.client.exceptions.Error` (see
+    `patched_bosdyn_exceptions()`); `responses` / `last_status` keep what each
+    command was answered with;
   * moves the robot through a real posture/motion state machine that a
     caller then polls with `robot_command_feedback(command_id)`.
 
@@ -26,16 +29,19 @@ sentinels) and `FakeSink` (records one call, or raises). A real Spot's
 `SpotRobotEmulator` (the sink) executes them against that state machine.
 `engage_estop()`, `set_lease_held()`, `power_off()` and `set_battery()`
 drive the physical side; `emit_robot_state()` returns a real-shape
-`RobotState`. Because bosdyn-client's own exception hierarchy isn't
-installed here, a real transport failure is raised as `OSError` (which
+`RobotState`. A lost lease is raised as `OSError`, which
 `SpotDroidControl._send()` degrades cleanly, exactly like the sibling
-UAV/AMR bridges).
+UAV/AMR bridges.
 """
 
 from __future__ import annotations
 
 import math
+import sys
 import time
+import types
+from contextlib import contextmanager
+from unittest import mock
 
 # --- RobotCommandResponse.Status (real bosdyn enum values) --------------
 STATUS_UNKNOWN = 0
@@ -56,6 +62,52 @@ TRAJ_STATUS_GOING_TO_GOAL = 3
 _MAX_TRAJECTORY_DISTANCE_M = 50.0  # real Spot rejects a body-frame goal past ~50 m
 
 
+class EmulatorBosdynError(Exception):
+    """Stands for `bosdyn.client.exceptions.Error`, the base of every error the real client raises."""
+
+
+class NotPoweredOnError(EmulatorBosdynError):
+    pass
+
+
+class ExpiredError(EmulatorBosdynError):
+    pass
+
+
+class TooDistantError(EmulatorBosdynError):
+    pass
+
+
+class BehaviorFaultError(EmulatorBosdynError):
+    pass
+
+
+class CommandRejectedError(EmulatorBosdynError):
+    """Any other status that is not STATUS_OK."""
+
+
+_ERRORS_BY_STATUS = {
+    STATUS_NOT_POWERED_ON: NotPoweredOnError,
+    STATUS_EXPIRED: ExpiredError,
+    STATUS_TOO_DISTANT: TooDistantError,
+    STATUS_BEHAVIOR_FAULT: BehaviorFaultError,
+}
+
+
+@contextmanager
+def patched_bosdyn_exceptions():
+    """Install the emulator's error base as `bosdyn.client.exceptions.Error` for the length of a test."""
+    exceptions = types.ModuleType("bosdyn.client.exceptions")
+    exceptions.Error = EmulatorBosdynError
+    modules = {
+        "bosdyn": types.ModuleType("bosdyn"),
+        "bosdyn.client": types.ModuleType("bosdyn.client"),
+        "bosdyn.client.exceptions": exceptions,
+    }
+    with mock.patch.dict(sys.modules, modules):
+        yield
+
+
 class SpotCommandBuilderEmulator:
     """Mirrors bosdyn-client's `RobotCommandBuilder` static methods, but
     returns a real-proto-shaped `dict` the sink below can dispatch on."""
@@ -67,6 +119,10 @@ class SpotCommandBuilderEmulator:
     @staticmethod
     def synchro_sit_command() -> dict:
         return {"synchronized_command": {"mobility_command": {"sit_request": {}}}}
+
+    @staticmethod
+    def stop_command() -> dict:
+        return {"full_body_command": {"stop_request": {}}}
 
     @staticmethod
     def synchro_trajectory_command_in_body_frame(
@@ -159,6 +215,15 @@ class SpotRobotEmulator:
 
         if not isinstance(command, dict):
             return self._respond(STATUS_INVALID_REQUEST)
+        if "stop_request" in command.get("full_body_command", {}):
+            # A stop is accepted whenever the motors are on, wherever the robot is going.
+            if not self.powered_on:
+                return self._respond(STATUS_NOT_POWERED_ON)
+            self.goal_body = None
+            self._active_traj_id = None
+            if self.posture == "MOVING":
+                self.posture = "STANDING"
+            return self._respond(STATUS_OK)
         mobility = command.get("synchronized_command", {}).get("mobility_command", {})
 
         if "sit_request" in mobility:
@@ -193,9 +258,9 @@ class SpotRobotEmulator:
                 return self._respond(STATUS_TOO_DISTANT)
             self.goal_body = (point["x"], point["y"], point["angle"])
             self.posture = "MOVING"
-            response = self._respond(STATUS_OK)
-            self._active_traj_id = response.command_id
-            return response
+            command_id = self._respond(STATUS_OK)
+            self._active_traj_id = command_id
+            return command_id
 
         return self._respond(STATUS_UNSUPPORTED)
 
@@ -204,11 +269,14 @@ class SpotRobotEmulator:
             return _TrajectoryFeedback(TRAJ_STATUS_GOING_TO_GOAL)
         return _TrajectoryFeedback(TRAJ_STATUS_AT_GOAL)
 
-    def _respond(self, status: int) -> _CommandResponse:
+    def _respond(self, status: int) -> int:
+        """The id of an accepted command; raises, like the real client, for any other status."""
         self._next_command_id += 1
         response = _CommandResponse(status, self._next_command_id)
         self.responses.append(response)
-        return response
+        if status != STATUS_OK:
+            raise _ERRORS_BY_STATUS.get(status, CommandRejectedError)(f"command {self._next_command_id} answered with status {status}")
+        return self._next_command_id
 
     @property
     def last_status(self) -> int:

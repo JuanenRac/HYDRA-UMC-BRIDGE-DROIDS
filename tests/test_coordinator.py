@@ -24,6 +24,23 @@ class CoordinatorTests(unittest.TestCase):
         self.assertTrue(result.accepted)
         self.assertEqual(result.action, "WALK_TO")
 
+    def test_the_dispatch_carries_the_parameters_it_validated(self):
+        walk = self.coordinator.dispatch(job(parameters={"x": " 1.5", "y": "2"}), CellState.READY)
+        self.assertEqual(dict(walk.parameters), {"x": 1.5, "y": 2.0})
+        pick = self.coordinator.dispatch(job(JobPhase.LOAD, parameters={"object_id": " box-7 "}), CellState.READY)
+        self.assertEqual(dict(pick.parameters), {"object_id": "box-7"})
+        self.assertEqual(dict(self.coordinator.dispatch(job(JobPhase.ABORT), CellState.FAULT).parameters), {})
+
+    def test_stand_request_gives_the_same_answer_as_the_shared_gate(self):
+        from hydra_umc_sdk.bridge_contract import evaluate_job
+
+        for cell in CellState:
+            for machine in MachineState:
+                with self.subTest(cell=cell, machine=machine):
+                    stand = self.coordinator.stand_request(cell, machine)
+                    gate = evaluate_job(job(JobPhase.PREPARE, machine), cell, machine)
+                    self.assertEqual((stand.accepted, stand.reason), (gate.allowed, gate.reason))
+
     def test_walk_to_without_coordinates_is_rejected_before_any_transport(self):
         result = self.coordinator.dispatch(job(parameters={}), CellState.READY)
         self.assertFalse(result.accepted)

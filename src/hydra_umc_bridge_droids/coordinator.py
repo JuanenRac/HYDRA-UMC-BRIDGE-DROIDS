@@ -16,7 +16,7 @@ here to a transport-agnostic (Wi-Fi/BT/4G-5G) action-trigger link instead.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import math
 from typing import Mapping
 
@@ -25,10 +25,18 @@ from hydra_umc_sdk.bridge_contract import BridgeJob, CellState, JobPhase, Machin
 
 @dataclass(frozen=True)
 class DroidDispatch:
+    """The decision for one action, with the validated parameters it was taken on.
+
+    `parameters` holds what the gate actually checked (`x` / `y` as finite
+    floats, `object_id` as a stripped string), so a transport sends exactly
+    that and not whatever its caller passes alongside.
+    """
+
     accepted: bool
     action: str
     reason: str
     mode: str = "plan-only"
+    parameters: Mapping[str, float | str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -120,9 +128,14 @@ class DroidCoordinator:
             return DroidDispatch(False, action, f"{action} requires finite numeric x and y coordinates")
         if action == self.PICK_OBJECT and not str(job.parameters["object_id"]).strip():
             return DroidDispatch(False, action, "PICK_OBJECT requires a non-empty object_id")
+        validated: dict[str, float | str] = {}
+        if action in (self.WALK_TO, self.PLACE_OBJECT):
+            validated = {name: float(job.parameters[name]) for name in ("x", "y")}
+        elif action == self.PICK_OBJECT:
+            validated = {"object_id": str(job.parameters["object_id"]).strip()}
         # `observed_machine_state` is what the droid reported about itself; when given it replaces the claim written in the job (see HYDRA-UMC-SDK's evaluate_job)
         decision = evaluate_job(job, cell_state, observed_machine_state)
-        return DroidDispatch(decision.allowed, action, decision.reason)
+        return DroidDispatch(decision.allowed, action, decision.reason, parameters=validated)
 
     def sit_request(self) -> DroidDispatch:
         """Real, standalone SIT request - deliberately outside the
@@ -144,10 +157,10 @@ class DroidCoordinator:
         IDLE-machine gate `evaluate_job()` applies to every other
         productive action - accepting `cell_state`/`machine_state`
         directly rather than a full BridgeJob since standing isn't tied
-        to any correlated job."""
+        to any correlated job. The decision is taken by `evaluate_job()` itself
+        (on a minimal job that carries only the state), so the rule has one
+        source and cannot drift from the SDK's."""
 
-        if cell_state is not CellState.READY:
-            return DroidDispatch(False, self.STAND, f"cell is {cell_state.value}, not READY")
-        if machine_state is not MachineState.IDLE:
-            return DroidDispatch(False, self.STAND, f"external machine is {machine_state.value}, not IDLE")
-        return DroidDispatch(True, self.STAND, "cell and external machine are ready")
+        job = BridgeJob("stand-request", "stand-request", "droid-bridge", JobPhase.PREPARE, machine_state, {})
+        decision = evaluate_job(job, cell_state, machine_state)
+        return DroidDispatch(decision.allowed, self.STAND, decision.reason)
