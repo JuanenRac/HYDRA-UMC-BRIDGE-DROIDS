@@ -19,7 +19,7 @@ from hydra_umc_bridge_droids.platform_profiles import (
 def dispatch(phase, cell=CellState.READY):
     params = {"x": "1.0", "y": "2.0", "object_id": "box-1"}
     job = BridgeJob("job-1", "idem-1", "droid-1", phase, MachineState.IDLE, params)
-    return DroidCoordinator().dispatch(job, cell)
+    return DroidCoordinator().dispatch(job, cell, MachineState.IDLE)
 
 
 class PlatformProfileTests(unittest.TestCase):

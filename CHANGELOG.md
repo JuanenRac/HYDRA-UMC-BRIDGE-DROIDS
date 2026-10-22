@@ -11,6 +11,7 @@ GPL-3.0-or-later - see LICENSE
 - The banner follows the animated style of the ecosystem banners, with the name, the kind and the technologies of the project.
 - Added `tools/hydra_project_tool.py`: the same `validate`, `test`, `version`, `status` and `bump` commands in every repository. The checks run with `HYDRA_UMC_CI=1` and fail if the version changes; only `bump` changes it.
 - The SDK is now fetched at a release tag instead of the main branch, so a change of the SDK cannot break this repository by itself.
+- The SDK is pinned to 0.3.6, whose gate refuses a productive job when the bridge did not read the state of its machine. `DroidCoordinator.dispatch()` must be given the state the droid reported; without it the job is refused, and the claim written in the job message is no longer trusted. The tests now pass the observed state explicitly and check the refusal when there is none.
 
 ## [0.1.2]
 

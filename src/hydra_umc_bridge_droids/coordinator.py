@@ -133,7 +133,7 @@ class DroidCoordinator:
             validated = {name: float(job.parameters[name]) for name in ("x", "y")}
         elif action == self.PICK_OBJECT:
             validated = {"object_id": str(job.parameters["object_id"]).strip()}
-        # `observed_machine_state` is what the droid reported about itself; when given it replaces the claim written in the job (see HYDRA-UMC-SDK's evaluate_job)
+        # `observed_machine_state` is what the droid reported about itself; the claim written in the job is not a reading, so without it the SDK gate refuses every productive job (fail-closed)
         decision = evaluate_job(job, cell_state, observed_machine_state)
         return DroidDispatch(decision.allowed, action, decision.reason, parameters=validated)
 

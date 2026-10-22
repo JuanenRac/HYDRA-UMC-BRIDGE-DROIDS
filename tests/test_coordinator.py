@@ -20,16 +20,16 @@ class CoordinatorTests(unittest.TestCase):
         self.coordinator = DroidCoordinator()
 
     def test_walk_to_with_real_coordinates_is_accepted(self):
-        result = self.coordinator.dispatch(job(parameters={"x": "1.5", "y": "2.0"}), CellState.READY)
+        result = self.coordinator.dispatch(job(parameters={"x": "1.5", "y": "2.0"}), CellState.READY, MachineState.IDLE)
         self.assertTrue(result.accepted)
         self.assertEqual(result.action, "WALK_TO")
 
     def test_the_dispatch_carries_the_parameters_it_validated(self):
-        walk = self.coordinator.dispatch(job(parameters={"x": " 1.5", "y": "2"}), CellState.READY)
+        walk = self.coordinator.dispatch(job(parameters={"x": " 1.5", "y": "2"}), CellState.READY, MachineState.IDLE)
         self.assertEqual(dict(walk.parameters), {"x": 1.5, "y": 2.0})
-        pick = self.coordinator.dispatch(job(JobPhase.LOAD, parameters={"object_id": " box-7 "}), CellState.READY)
+        pick = self.coordinator.dispatch(job(JobPhase.LOAD, parameters={"object_id": " box-7 "}), CellState.READY, MachineState.IDLE)
         self.assertEqual(dict(pick.parameters), {"object_id": "box-7"})
-        self.assertEqual(dict(self.coordinator.dispatch(job(JobPhase.ABORT), CellState.FAULT).parameters), {})
+        self.assertEqual(dict(self.coordinator.dispatch(job(JobPhase.ABORT), CellState.FAULT, MachineState.IDLE).parameters), {})
 
     def test_stand_request_gives_the_same_answer_as_the_shared_gate(self):
         from hydra_umc_sdk.bridge_contract import evaluate_job
@@ -42,7 +42,7 @@ class CoordinatorTests(unittest.TestCase):
                     self.assertEqual((stand.accepted, stand.reason), (gate.allowed, gate.reason))
 
     def test_walk_to_without_coordinates_is_rejected_before_any_transport(self):
-        result = self.coordinator.dispatch(job(parameters={}), CellState.READY)
+        result = self.coordinator.dispatch(job(parameters={}), CellState.READY, MachineState.IDLE)
         self.assertFalse(result.accepted)
         self.assertIn("x", result.reason)
         self.assertIn("y", result.reason)
@@ -54,33 +54,33 @@ class CoordinatorTests(unittest.TestCase):
             {"x": "1", "y": "inf"},
         ):
             with self.subTest(coordinates=coordinates):
-                result = self.coordinator.dispatch(job(parameters=coordinates), CellState.READY)
+                result = self.coordinator.dispatch(job(parameters=coordinates), CellState.READY, MachineState.IDLE)
                 self.assertFalse(result.accepted)
                 self.assertIn("finite numeric", result.reason)
 
     def test_pick_object_requires_object_id(self):
-        rejected = self.coordinator.dispatch(job(JobPhase.LOAD, parameters={}), CellState.READY)
+        rejected = self.coordinator.dispatch(job(JobPhase.LOAD, parameters={}), CellState.READY, MachineState.IDLE)
         self.assertFalse(rejected.accepted)
         self.assertEqual(rejected.action, "PICK_OBJECT")
-        accepted = self.coordinator.dispatch(job(JobPhase.LOAD, parameters={"object_id": "crate-7"}), CellState.READY)
+        accepted = self.coordinator.dispatch(job(JobPhase.LOAD, parameters={"object_id": "crate-7"}), CellState.READY, MachineState.IDLE)
         self.assertTrue(accepted.accepted)
 
     def test_pick_object_rejects_a_blank_object_id(self):
-        result = self.coordinator.dispatch(job(JobPhase.LOAD, parameters={"object_id": "  "}), CellState.READY)
+        result = self.coordinator.dispatch(job(JobPhase.LOAD, parameters={"object_id": "  "}), CellState.READY, MachineState.IDLE)
         self.assertFalse(result.accepted)
         self.assertIn("non-empty", result.reason)
 
     def test_busy_machine_is_not_reused(self):
-        result = self.coordinator.dispatch(job(state=MachineState.RUNNING, parameters={"x": "0", "y": "0"}), CellState.READY)
+        result = self.coordinator.dispatch(job(parameters={"x": "0", "y": "0"}), CellState.READY, MachineState.RUNNING)
         self.assertFalse(result.accepted)
 
     def test_hold_position_needs_no_parameters_and_stays_available_during_fault(self):
-        result = self.coordinator.dispatch(job(JobPhase.ABORT, MachineState.FAULT, {}), CellState.FAULT)
+        result = self.coordinator.dispatch(job(JobPhase.ABORT, MachineState.FAULT, {}), CellState.FAULT, MachineState.FAULT)
         self.assertTrue(result.accepted)
         self.assertEqual(result.action, "HOLD_POSITION")
 
     def test_complete_returns_home_with_no_parameters_required(self):
-        result = self.coordinator.dispatch(job(JobPhase.COMPLETE, parameters={}), CellState.READY)
+        result = self.coordinator.dispatch(job(JobPhase.COMPLETE, parameters={}), CellState.READY, MachineState.IDLE)
         self.assertTrue(result.accepted)
         self.assertEqual(result.action, "RETURN_HOME")
 
@@ -107,7 +107,7 @@ class CoordinatorTests(unittest.TestCase):
         # reads before returning) rather than a real BridgeJob the SDK
         # would now refuse to construct at all.
         unknown = SimpleNamespace(phase="SOME_FUTURE_PHASE")
-        result = self.coordinator.dispatch(unknown, CellState.READY)
+        result = self.coordinator.dispatch(unknown, CellState.READY, MachineState.IDLE)
         self.assertFalse(result.accepted)
         self.assertEqual(result.action, "none")
 
