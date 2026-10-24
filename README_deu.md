@@ -32,7 +32,7 @@ GPL-3.0-or-later - see LICENSE
 
 | | |
 |---|---|
-| Version | `0.1.2` |
+| Version | `0.1.3` |
 | Reifegrad | Funktionsfähig |
 | Tests | 57 (`python tools/build_test.py`) |
 | Technik | Python / Boston Dynamics Spot SDK (bosdyn-client) / HYDRA-UMC-SDK |
@@ -138,7 +138,7 @@ bash build.sh
 
 ## ✅ Aktueller Status & Nächste Schritte
 
-**Heute real:** Version `0.1.2`, funktionsfähig als abhängigkeitsfreier Koordinationskern (`DroidCoordinator`) mit echter Parametervalidierung pro Aktion, ausfallsicherem Phasenrouting, einem statischen `plan-only`-Aktionsschema, einem echten Boston-Dynamics-Spot-Transport (`SpotDroidControl`), der echte bosdyn-client-Befehle sendet, sowie nicht-mutierenden Build-Test-Skripten, die in CI mit SDK-Checkout eingebunden sind.
+**Heute real:** Version `0.1.3`, funktionsfähig als abhängigkeitsfreier Koordinationskern (`DroidCoordinator`) mit echter Parametervalidierung pro Aktion, ausfallsicherem Phasenrouting, einem statischen `plan-only`-Aktionsschema, einem echten Boston-Dynamics-Spot-Transport (`SpotDroidControl`), der echte bosdyn-client-Befehle sendet, sowie nicht-mutierenden Build-Test-Skripten, die in CI mit SDK-Checkout eingebunden sind.
 
 **Integrationsgrenze:** diese Brücke ist ausschließlich eine Koordinationsgrenze — sie ist kein Motorsteuerungsknoten und kann HYDRA-UMC-SERVER, MCU-Grenzen, Watchdogs oder den E-STOP nicht umgehen; jeder versendete Auftrag durchläuft weiterhin dasselbe gemeinsame Gatter, das jede Schwesterbrücke verwendet.
 

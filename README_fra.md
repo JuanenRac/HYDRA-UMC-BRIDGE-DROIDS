@@ -32,7 +32,7 @@ GPL-3.0-or-later - see LICENSE
 
 | | |
 |---|---|
-| Version | `0.1.2` |
+| Version | `0.1.3` |
 | Maturité | Fonctionnel |
 | Tests | 57 (`python tools/build_test.py`) |
 | Technologie | Python / Boston Dynamics Spot SDK (bosdyn-client) / HYDRA-UMC-SDK |
@@ -138,7 +138,7 @@ bash build.sh
 
 ## ✅ État actuel et prochaines étapes
 
-**Réel aujourd'hui :** version `0.1.2`, fonctionnel en tant que noyau de coordination sans dépendance (`DroidCoordinator`) avec validation réelle des paramètres par action, routage de phases fermé, un schéma d'action statique `plan-only`, un transport Boston Dynamics Spot réel (`SpotDroidControl`) envoyant de véritables commandes bosdyn-client, et des scripts build-test non mutants intégrés en CI avec un checkout du SDK.
+**Réel aujourd'hui :** version `0.1.3`, fonctionnel en tant que noyau de coordination sans dépendance (`DroidCoordinator`) avec validation réelle des paramètres par action, routage de phases fermé, un schéma d'action statique `plan-only`, un transport Boston Dynamics Spot réel (`SpotDroidControl`) envoyant de véritables commandes bosdyn-client, et des scripts build-test non mutants intégrés en CI avec un checkout du SDK.
 
 **Frontière d'intégration :** ce pont n'est qu'une frontière de coordination — ce n'est pas un nœud de contrôle moteur, et il ne peut pas contourner HYDRA-UMC-SERVER, les limites du MCU, les watchdogs ou l'E-STOP ; chaque tâche envoyée passe toujours par le même portail partagé utilisé par tous les ponts frères.
 

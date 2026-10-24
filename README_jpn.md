@@ -32,7 +32,7 @@ GPL-3.0-or-later - see LICENSE
 
 | | |
 |---|---|
-| バージョン | `0.1.2` |
+| バージョン | `0.1.3` |
 | 成熟度 | 機能する |
 | テスト | 57 (`python tools/build_test.py`) |
 | 技術 | Python / Boston Dynamics Spot SDK (bosdyn-client) / HYDRA-UMC-SDK |
@@ -138,7 +138,7 @@ bash build.sh
 
 ## ✅ 現状と次のステップ
 
-**現時点で実在するもの:** バージョン `0.1.2`。実在するアクションごとのパラメータ検証、フェイルクローズのフェーズルーティング、静的な `plan-only` アクションスキーマ、実際の bosdyn-client コマンドを送信する実際の Boston Dynamics Spot トランスポート(`SpotDroidControl`)、SDKチェックアウトを伴いCIに組み込まれた非破壊的なbuild-testスクリプトを備える依存関係なしの連携コア(`DroidCoordinator`)として機能している。
+**現時点で実在するもの:** バージョン `0.1.3`。実在するアクションごとのパラメータ検証、フェイルクローズのフェーズルーティング、静的な `plan-only` アクションスキーマ、実際の bosdyn-client コマンドを送信する実際の Boston Dynamics Spot トランスポート(`SpotDroidControl`)、SDKチェックアウトを伴いCIに組み込まれた非破壊的なbuild-testスクリプトを備える依存関係なしの連携コア(`DroidCoordinator`)として機能している。
 
 **統合境界:** このブリッジは連携境界に過ぎない —— モーター制御ノードではなく、HYDRA-UMC-SERVER、MCUの限界、ウォッチドッグ、E-STOPを迂回することはできない。送信されるすべてのジョブは、依然としてすべての兄弟ブリッジが使う同じ共有ゲートを通過する。
 
