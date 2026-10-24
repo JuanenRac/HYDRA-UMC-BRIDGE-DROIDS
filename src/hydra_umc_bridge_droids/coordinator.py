@@ -20,7 +20,8 @@ from dataclasses import dataclass, field
 import math
 from typing import Mapping
 
-from hydra_umc_sdk.bridge_contract import BridgeJob, CellState, JobPhase, MachineState, evaluate_job
+from hydra_umc_sdk.bridge_contract import BridgeJob, CellState, JobPhase, MachineState
+from hydra_umc_sdk.phase_coordinator import PhaseCoordinator
 
 
 @dataclass(frozen=True)
@@ -102,10 +103,24 @@ class DroidCoordinator:
         JobPhase.ABORT: HOLD_POSITION,
     }
 
+    def __init__(self) -> None:
+        # the table of phases, the required parameters, the gate and the standalone requests are the shared coordinator of the SDK;
+        # what this class keeps is what is specific to a droid: the meaning of its parameters
+        self._phases = PhaseCoordinator(
+            self._phase_actions,
+            required_parameters=self._REQUIRED_PARAMS,
+            validators={
+                self.WALK_TO: lambda parameters: self._coordinates(self.WALK_TO, parameters),
+                self.PLACE_OBJECT: lambda parameters: self._coordinates(self.PLACE_OBJECT, parameters),
+                self.PICK_OBJECT: self._object,
+            },
+            extra_actions=(self.STAND, self.SIT),
+        )
+
     def action_plan(self) -> DroidActionPlan:
         """Return the static action vocabulary without opening any real transport."""
 
-        return DroidActionPlan("1.1", "plan-only", tuple(self._REQUIRED_PARAMS))
+        return DroidActionPlan("1.1", "plan-only", self._phases.vocabulary())
 
     @staticmethod
     def _valid_coordinates(parameters: Mapping[str, str]) -> bool:
@@ -116,26 +131,25 @@ class DroidCoordinator:
         except (KeyError, TypeError, ValueError):
             return False
 
+    @classmethod
+    def _coordinates(cls, action: str, parameters: Mapping[str, str]) -> Mapping[str, object]:
+        if not cls._valid_coordinates(parameters):
+            raise ValueError(f"{action} requires finite numeric x and y coordinates")
+        return {name: float(parameters[name]) for name in ("x", "y")}
+
+    @staticmethod
+    def _object(parameters: Mapping[str, str]) -> Mapping[str, object]:
+        object_id = str(parameters["object_id"]).strip()
+        if not object_id:
+            raise ValueError("PICK_OBJECT requires a non-empty object_id")
+        return {"object_id": object_id}
+
     def dispatch(self, job: BridgeJob, cell_state: CellState, observed_machine_state: MachineState | None = None) -> DroidDispatch:
-        action = self._phase_actions.get(job.phase)
-        if action is None:
-            return DroidDispatch(False, "none", "job phase has no mapped droid action trigger")
-        required = self._REQUIRED_PARAMS[action]
-        missing = [name for name in required if name not in job.parameters]
-        if missing:
-            return DroidDispatch(False, action, f"missing required parameter(s) for {action}: {', '.join(missing)}")
-        if action in (self.WALK_TO, self.PLACE_OBJECT) and not self._valid_coordinates(job.parameters):
-            return DroidDispatch(False, action, f"{action} requires finite numeric x and y coordinates")
-        if action == self.PICK_OBJECT and not str(job.parameters["object_id"]).strip():
-            return DroidDispatch(False, action, "PICK_OBJECT requires a non-empty object_id")
-        validated: dict[str, float | str] = {}
-        if action in (self.WALK_TO, self.PLACE_OBJECT):
-            validated = {name: float(job.parameters[name]) for name in ("x", "y")}
-        elif action == self.PICK_OBJECT:
-            validated = {"object_id": str(job.parameters["object_id"]).strip()}
         # `observed_machine_state` is what the droid reported about itself; the claim written in the job is not a reading, so without it the SDK gate refuses every productive job (fail-closed)
-        decision = evaluate_job(job, cell_state, observed_machine_state)
-        return DroidDispatch(decision.allowed, action, decision.reason, parameters=validated)
+        decision = self._phases.decide(job, cell_state, observed_machine_state)
+        if decision.action == "none":
+            return DroidDispatch(False, "none", "job phase has no mapped droid action trigger")
+        return DroidDispatch(decision.accepted, decision.action, decision.reason, parameters=dict(decision.parameters))
 
     def sit_request(self) -> DroidDispatch:
         """Real, standalone SIT request - deliberately outside the
@@ -147,7 +161,8 @@ class DroidCoordinator:
         operator must always be able to request it, not just when the
         cell happens to be READY."""
 
-        return DroidDispatch(True, self.SIT, "sit requested - always forwarded regardless of cell/machine state")
+        decision = self._phases.always_forwarded(self.SIT, "sit requested")
+        return DroidDispatch(decision.accepted, self.SIT, decision.reason)
 
     def stand_request(self, cell_state: CellState, machine_state: MachineState) -> DroidDispatch:
         """Real, standalone STAND request - unlike SIT above, standing up
@@ -161,6 +176,5 @@ class DroidCoordinator:
         (on a minimal job that carries only the state), so the rule has one
         source and cannot drift from the SDK's."""
 
-        job = BridgeJob("stand-request", "stand-request", "droid-bridge", JobPhase.PREPARE, machine_state, {})
-        decision = evaluate_job(job, cell_state, machine_state)
-        return DroidDispatch(decision.allowed, self.STAND, decision.reason)
+        decision = self._phases.gated_request(self.STAND, cell_state, machine_state)
+        return DroidDispatch(decision.accepted, self.STAND, decision.reason)

@@ -149,3 +149,15 @@ class CoordinatorTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SharedCoordinatorTests(unittest.TestCase):
+    def test_the_messages_name_the_action_that_was_refused(self):
+        coordinator = DroidCoordinator()
+        for phase, action in ((JobPhase.PROCESS, "WALK_TO"), (JobPhase.UNLOAD, "PLACE_OBJECT")):
+            job = BridgeJob("job-1", "idem-1", "droid-1", phase, MachineState.IDLE, {"x": "nan", "y": "1"})
+            result = coordinator.dispatch(job, CellState.READY, MachineState.IDLE)
+            self.assertEqual((result.accepted, result.reason), (False, f"{action} requires finite numeric x and y coordinates"))
+
+    def test_the_vocabulary_is_the_shared_one(self):
+        self.assertEqual(DroidCoordinator().action_plan().actions, ("WALK_TO", "PICK_OBJECT", "PLACE_OBJECT", "RETURN_HOME", "HOLD_POSITION", "STAND", "SIT"))
