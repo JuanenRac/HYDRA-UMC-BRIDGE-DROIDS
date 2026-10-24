@@ -109,12 +109,17 @@ HYDRA-UMC-BRIDGE-DROIDS/
 │   ├── test_spot_transport.py   # Test di forma comando bosdyn-client contro un client robot fittizio
 │   ├── test_platform_profiles.py # Test dei profili di piattaforma e del droide simulato
 │   ├── spot_emulator.py         # Emulatore Spot fedele al protocollo (test double realistico)
-│   └── test_spot_emulator.py    # Comportamento del bridge rispetto all'emulatore Spot
+│   ├── test_spot_emulator.py    # Comportamento del bridge rispetto all'emulatore Spot
+│   └── test_edge_cases.py       # Ordine di arresto e seduta, stato dei comandi e casi limite dell'avvio
 ├── tools/
 │   ├── build_test.py            # Compilatore + esecutore di test non mutante (build-test.bat/.sh)
 │   ├── bump_version.py          # Sincronizza pyproject.toml, manifesto e CHANGELOG.md
 │   ├── ci_validate.py           # Base CI priva di dipendenze e non distruttiva (usata da .github/workflows/ci.yml)
-│   └── inspect_action_plan.py   # Stampa il piano d'azione statico (nessun trasporto aperto)
+│   ├── inspect_action_plan.py   # Stampa il piano d'azione statico (nessun trasporto aperto)
+│   ├── _doc_policy.py           # Regole di documentazione condivise dalla famiglia (copia di quella di HYDRA-UMC-SDK, mantenuta sincronizzata)
+│   ├── _readme_parity.py        # Verifica che gli otto README abbiano la stessa struttura (copia di quella di HYDRA-UMC-SDK, mantenuta sincronizzata)
+│   ├── hydra_project_tool.py    # Gli stessi comandi in ogni repository: validate, test, ci, version, status, bump
+│   └── extra_build_steps.py     # I passi di compilazione propri di questo repository oltre al test di compilazione condiviso (i suoi unit test)
 ├── docs/
 │   └── BRIDGE_GUIDE.md          # Ambito, piattaforme compatibili, script, porta di accettazione hardware
 ├── images/

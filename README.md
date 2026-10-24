@@ -109,12 +109,17 @@ HYDRA-UMC-BRIDGE-DROIDS/
 │   ├── test_spot_transport.py   # bosdyn-client command shape tests against a fake robot command client
 │   ├── test_platform_profiles.py # Tests of the platform profiles and the simulated droid
 │   ├── spot_emulator.py         # Protocol-faithful Spot emulator (realistic test double)
-│   └── test_spot_emulator.py    # Bridge behaviour against the Spot emulator
+│   ├── test_spot_emulator.py    # Bridge behaviour against the Spot emulator
+│   └── test_edge_cases.py       # Stop and sit ordering, command status and bring-up edge cases
 ├── tools/
 │   ├── build_test.py            # Non-mutating compile + test runner (build-test.bat/.sh)
 │   ├── bump_version.py          # Synchronizes pyproject.toml, manifest and CHANGELOG.md
 │   ├── ci_validate.py           # Dependency-free, non-destructive CI baseline (used by .github/workflows/ci.yml)
-│   └── inspect_action_plan.py   # Prints the static action plan (no transport opened)
+│   ├── inspect_action_plan.py   # Prints the static action plan (no transport opened)
+│   ├── _doc_policy.py           # Documentation rules shared by the family (a copy of HYDRA-UMC-SDK's, kept in sync)
+│   ├── _readme_parity.py        # Check that the eight READMEs share one structure (a copy of HYDRA-UMC-SDK's, kept in sync)
+│   ├── hydra_project_tool.py    # The same commands in every repository: validate, test, ci, version, status, bump
+│   └── extra_build_steps.py     # The build steps of this repository beyond the shared build test (its own unit tests)
 ├── docs/
 │   └── BRIDGE_GUIDE.md          # Scope, compatible platforms, scripts, hardware acceptance gate
 ├── images/
