@@ -35,6 +35,19 @@ GPL-3.0-or-later - see LICENSE
 | Tecnologia | Python / Boston Dynamics Spot SDK (bosdyn-client) / HYDRA-UMC-SDK |
 | Em hardware real | Só simulado: testado com emuladores, dublês de teste ou simuladores; não há registo de execução em hardware real para esta versão |
 
+## 🚦 Estado do projeto
+
+Cada linha é uma parte deste repositório e a luz diz até onde chega hoje. É escrita com o que o repositório consegue demonstrar (testes, compilações, execuções), não com o que está previsto.
+
+🟢 Feito e verificado · 🟡 Funciona, com limites conhecidos · 🟠 Feito a meio ou ainda por verificar · 🔴 Por fazer ou a não funcionar
+
+| Área | Estado | O que significa aqui |
+|---|---|---|
+| Software | 🟡 | Funciona para o seu propósito principal; a verificação de honestidade acima lista o que ainda falta |
+| Testes | 🟢 | 57 testes automáticos, executados a cada alteração |
+| Hardware real | 🟠 | Só simulado: testado com emuladores, dublês de teste ou simuladores; não há registo de execução em hardware real para esta versão |
+| Documentação | 🟢 | README em oito idiomas, verificado contra o manifesto a cada alteração |
+
 ## 1. 🛠️ VISÃO TÉCNICA GERAL
 
 O **HYDRA-UMC-BRIDGE-DROIDS** é a fronteira de coordenação de alto nível entre o HYDRA-UMC e uma plataforma de droide com patas ou humanoide, acessível por Wi-Fi ou uma ligação celular (4G/5G). Nunca calcula marcha, equilíbrio nem trajetórias de juntas: valida e reencaminha um pequeno vocabulário com nome de ordens de corpo inteiro (`WALK_TO`, `PICK_OBJECT`, `PLACE_OBJECT`, `RETURN_HOME`, `HOLD_POSITION`, `STAND`, `SIT`), cada uma com o seu próprio contrato real de parâmetros obrigatórios. Não é um nó de controlo de motores e não pode contornar o HYDRA-UMC-SERVER, os limites do MCU, os watchdogs nem a paragem de emergência (E-STOP). O único transporte implementado é a API própria do Boston Dynamics Spot sobre uma rede IP (não há Bluetooth); hoje consegue enviar `sit`, `stand`, `walk_to` e a paragem, e nunca foi executado contra um robô real.
