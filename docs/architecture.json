@@ -1,0 +1,128 @@
+{
+  "repo": "HYDRA-UMC-BRIDGE-DROIDS",
+  "ecosystem": "hydra",
+  "tagline": "A cell job becomes a named droid action, never raw motion, once the shared gate says yes.",
+  "description": "HYDRA-UMC-BRIDGE-DROIDS maps a correlated cell job onto a named action trigger of a legged or humanoid droid, checks it against the platform profile, asks the shared evaluate_job gate of HYDRA-UMC-SDK and, for a Boston Dynamics Spot, sends the accepted action through bosdyn-client. It never takes the lease and never powers the motors.",
+  "columns": [
+    "WHO USES IT",
+    "THIS REPOSITORY",
+    "WHAT IT DEPENDS ON"
+  ],
+  "nodes": [
+    {
+      "id": "sdk",
+      "column": 0,
+      "level": "contract",
+      "title": "HYDRA-UMC-SDK",
+      "lines": [
+        "evaluate_job(): the gate",
+        "every bridge shares"
+      ]
+    },
+    {
+      "id": "cell",
+      "column": 0,
+      "level": "external",
+      "title": "Robot cell job",
+      "lines": [
+        "BridgeJob with a",
+        "correlation id"
+      ]
+    },
+    {
+      "id": "coord",
+      "column": 1,
+      "level": "contract",
+      "title": "coordinator.py",
+      "lines": [
+        "DroidCoordinator: job to a",
+        "named action trigger"
+      ],
+      "code": [
+        "src/hydra_umc_bridge_droids/coordinator.py::class DroidCoordinator"
+      ]
+    },
+    {
+      "id": "prof",
+      "column": 1,
+      "level": "tested",
+      "title": "platform_profiles.py",
+      "lines": [
+        "mobile-only or mobile-",
+        "manipulator action sets"
+      ],
+      "code": [
+        "src/hydra_umc_bridge_droids/platform_profiles.py::PROFILES"
+      ]
+    },
+    {
+      "id": "spot",
+      "column": 1,
+      "level": "tested",
+      "title": "spot_transport.py",
+      "lines": [
+        "SpotDroidControl: hold, sit,",
+        "stand, walk_to"
+      ],
+      "code": [
+        "src/hydra_umc_bridge_droids/spot_transport.py::class SpotDroidControl"
+      ]
+    },
+    {
+      "id": "bosdyn",
+      "column": 2,
+      "level": "external",
+      "title": "bosdyn-client",
+      "lines": [
+        "optional extra `spot`"
+      ]
+    },
+    {
+      "id": "robot",
+      "column": 2,
+      "level": "untested",
+      "title": "Boston Dynamics Spot",
+      "lines": [
+        "never connected to a real",
+        "robot"
+      ],
+      "title_size": 12
+    }
+  ],
+  "edges": [
+    {
+      "from": "sdk",
+      "to": "coord",
+      "label": "gate",
+      "level": "contract"
+    },
+    {
+      "from": "cell",
+      "to": "coord",
+      "label": "job",
+      "level": "tested"
+    },
+    {
+      "from": "coord",
+      "to": "prof",
+      "level": "tested"
+    },
+    {
+      "from": "prof",
+      "to": "spot",
+      "level": "tested"
+    },
+    {
+      "from": "spot",
+      "to": "bosdyn",
+      "label": "command",
+      "level": "tested"
+    },
+    {
+      "from": "bosdyn",
+      "to": "robot",
+      "level": "untested"
+    }
+  ],
+  "footer": "Tested against an emulator shaped like bosdyn-client; no real Spot was ever connected."
+}

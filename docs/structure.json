@@ -1,0 +1,270 @@
+{
+  "repo": "HYDRA-UMC-BRIDGE-DROIDS",
+  "ecosystem": "hydra",
+  "svg": "en",
+  "cards": [
+    {
+      "name": "src/hydra_umc_bridge_droids/",
+      "span": 3,
+      "accent": "a",
+      "sub": {
+        "en": "the bridge, in Python",
+        "es": "el bridge, en Python",
+        "de": "der Bridge in Python",
+        "fr": "le bridge, en Python",
+        "it": "il bridge, in Python",
+        "ja": "Python のブリッジ",
+        "zh": "用 Python 编写的桥接",
+        "pt": "o bridge, em Python"
+      },
+      "rows": [
+        {
+          "name": "coordinator.py",
+          "desc": {
+            "en": "maps a job onto named action triggers, never raw motion",
+            "es": "convierte un trabajo en disparadores de acción con nombre, nunca movimiento crudo",
+            "de": "setzt einen Auftrag in benannte Aktionsauslöser um, nie rohe Bewegung",
+            "fr": "transforme un travail en déclencheurs d'action nommés, jamais de mouvement brut",
+            "it": "trasforma un lavoro in trigger di azione con nome, mai movimento grezzo",
+            "ja": "ジョブを名前付きの動作トリガーに変換（生の動作は不可）",
+            "zh": "把任务映射为具名动作触发，绝不发原始运动",
+            "pt": "converte um trabalho em disparadores de ação com nome, nunca movimento bruto"
+          }
+        },
+        {
+          "name": "platform_profiles.py",
+          "desc": {
+            "en": "which actions a platform can be asked for; a droid that cannot move",
+            "es": "qué acciones se pueden pedir a una plataforma; un droide que no puede moverse",
+            "de": "welche Aktionen eine Plattform kann; ein Droide, der sich nicht bewegen kann",
+            "fr": "quelles actions une plateforme peut recevoir ; un droïde qui ne peut pas bouger",
+            "it": "quali azioni si possono chiedere a una piattaforma; un droide che non può muoversi",
+            "ja": "プラットフォームに要求できる動作と、動けないドロイド",
+            "zh": "平台可被要求的动作；一个无法移动的机器人",
+            "pt": "que ações se podem pedir a uma plataforma; um droide que não se pode mover"
+          }
+        },
+        {
+          "name": "spot_transport.py",
+          "desc": {
+            "en": "Spot commands through bosdyn-client: hold, sit, stand, walk_to",
+            "es": "órdenes a Spot con bosdyn-client: hold, sit, stand, walk_to",
+            "de": "Spot-Befehle über bosdyn-client: hold, sit, stand, walk_to",
+            "fr": "commandes Spot via bosdyn-client : hold, sit, stand, walk_to",
+            "it": "comandi a Spot con bosdyn-client: hold, sit, stand, walk_to",
+            "ja": "bosdyn-client 経由の Spot コマンド：hold・sit・stand・walk_to",
+            "zh": "通过 bosdyn-client 向 Spot 发命令：hold、sit、stand、walk_to",
+            "pt": "comandos ao Spot com bosdyn-client: hold, sit, stand, walk_to"
+          }
+        }
+      ]
+    },
+    {
+      "name": {
+        "en": "tests, docs and tools",
+        "es": "pruebas, docs y herramientas",
+        "de": "Tests, Doku und Werkzeuge",
+        "fr": "tests, docs et outils",
+        "it": "test, documenti e strumenti",
+        "ja": "テスト・文書・ツール",
+        "zh": "测试、文档和工具",
+        "pt": "testes, docs e ferramentas"
+      },
+      "kind": "group",
+      "span": 3,
+      "accent": "b",
+      "columns": 2,
+      "rows": [
+        {
+          "name": "tests/",
+          "desc": {
+            "en": "72 tests, with a bosdyn-shaped Spot emulator",
+            "es": "72 pruebas, con un emulador de Spot con la forma de bosdyn",
+            "de": "72 Tests, mit einem bosdyn-förmigen Spot-Emulator",
+            "fr": "72 tests, avec un émulateur de Spot à la forme de bosdyn",
+            "it": "72 test, con un emulatore di Spot con la forma di bosdyn",
+            "ja": "72 件（bosdyn 形式の Spot エミュレーター付き）",
+            "zh": "72 项测试（含 bosdyn 形态的 Spot 模拟器）",
+            "pt": "72 testes, com um emulador de Spot com a forma do bosdyn"
+          }
+        },
+        {
+          "name": "docs/",
+          "desc": {
+            "en": "bridge guide",
+            "es": "guía del bridge",
+            "de": "Bridge-Leitfaden",
+            "fr": "guide du bridge",
+            "it": "guida del bridge",
+            "ja": "ブリッジガイド",
+            "zh": "桥接指南",
+            "pt": "guia do bridge"
+          }
+        },
+        {
+          "name": "tools/",
+          "desc": {
+            "en": "project tools, CI checks, version bump",
+            "es": "herramientas del proyecto, comprobaciones de CI, subida de versión",
+            "de": "Projektwerkzeuge, CI-Prüfungen, Versionserhöhung",
+            "fr": "outils du projet, vérifications CI, montée de version",
+            "it": "strumenti del progetto, controlli CI, aumento di versione",
+            "ja": "プロジェクトのツール、CI の検査、バージョンの引き上げ",
+            "zh": "项目工具、CI 检查、版本提升",
+            "pt": "ferramentas do projeto, verificações de CI, subida de versão"
+          },
+          "tree_desc": {
+            "en": "build and test runner, version bump, CI validator, README and picture generators and checks",
+            "es": "ejecutor de compilación y pruebas, subida de versión, validador de CI, generadores y comprobaciones de README e imágenes",
+            "de": "Build- und Testläufer, Versionserhöhung, CI-Prüfer, README- und Bildgeneratoren samt Prüfungen",
+            "fr": "exécuteur de build et de tests, montée de version, validateur CI, générateurs et vérifications des README et des images",
+            "it": "esecutore di build e test, aumento di versione, validatore CI, generatori e controlli di README e immagini",
+            "ja": "ビルド・テスト実行、バージョン引き上げ、CI 検証、README と図の生成・検査",
+            "zh": "构建与测试运行器、版本提升、CI 校验、README 与图片的生成和检查",
+            "pt": "executor de compilação e testes, subida de versão, validador de CI, geradores e verificações de README e imagens"
+          }
+        },
+        {
+          "name": "images/",
+          "desc": {
+            "en": "banner and the pictures of the README",
+            "es": "banner y las imágenes del README",
+            "de": "Banner und die Bilder der README",
+            "fr": "bannière et images du README",
+            "it": "banner e immagini del README",
+            "ja": "バナーと README の図",
+            "zh": "横幅图与 README 的图片",
+            "pt": "faixa e imagens do README"
+          }
+        },
+        {
+          "name": ".github/",
+          "desc": {
+            "en": "CI workflow and issue templates",
+            "es": "flujo de CI y plantillas de incidencias",
+            "de": "CI-Workflow und Issue-Vorlagen",
+            "fr": "workflow CI et modèles de tickets",
+            "it": "workflow CI e modelli di segnalazione",
+            "ja": "CI ワークフローと Issue テンプレート",
+            "zh": "CI 工作流和 Issue 模板",
+            "pt": "fluxo de CI e modelos de questões"
+          }
+        }
+      ]
+    },
+    {
+      "name": {
+        "en": "project files",
+        "es": "ficheros del proyecto",
+        "de": "Projektdateien",
+        "fr": "fichiers du projet",
+        "it": "file del progetto",
+        "ja": "プロジェクトのファイル",
+        "zh": "项目文件",
+        "pt": "ficheiros do projeto"
+      },
+      "kind": "group",
+      "span": 3,
+      "accent": "c",
+      "columns": 2,
+      "rows": [
+        {
+          "name": "pyproject.toml",
+          "desc": {
+            "en": "package metadata and dependencies",
+            "es": "metadatos del paquete y dependencias",
+            "de": "Paketmetadaten und Abhängigkeiten",
+            "fr": "métadonnées du paquet et dépendances",
+            "it": "metadati del pacchetto e dipendenze",
+            "ja": "パッケージのメタデータと依存関係",
+            "zh": "包元数据与依赖",
+            "pt": "metadados do pacote e dependências"
+          }
+        },
+        {
+          "name": "hydra-umc.project.json",
+          "desc": {
+            "en": "manifest: version, maturity, family",
+            "es": "manifiesto: versión, madurez, familia",
+            "de": "Manifest: Version, Reifegrad, Familie",
+            "fr": "manifeste : version, maturité, famille",
+            "it": "manifesto: versione, maturità, famiglia",
+            "ja": "マニフェスト：バージョン・成熟度・ファミリー",
+            "zh": "清单：版本、成熟度、系列",
+            "pt": "manifesto: versão, maturidade, família"
+          }
+        },
+        {
+          "name": "CHANGELOG.md",
+          "desc": {
+            "en": "what changed in each version",
+            "es": "qué cambió en cada versión",
+            "de": "was sich in jeder Version geändert hat",
+            "fr": "ce qui a changé à chaque version",
+            "it": "cosa è cambiato in ogni versione",
+            "ja": "各バージョンの変更点",
+            "zh": "每个版本的变化",
+            "pt": "o que mudou em cada versão"
+          }
+        },
+        {
+          "name": "build.sh  build.bat",
+          "tree_name": "build.sh build.bat",
+          "desc": {
+            "en": "build scripts (they never change the version)",
+            "es": "scripts de compilación (nunca cambian la versión)",
+            "de": "Build-Skripte (ändern die Version nie)",
+            "fr": "scripts de build (ils ne changent jamais la version)",
+            "it": "script di build (non cambiano mai la versione)",
+            "ja": "ビルドスクリプト（バージョンは変えません）",
+            "zh": "构建脚本（从不改变版本）",
+            "pt": "scripts de compilação (nunca mudam a versão)"
+          }
+        },
+        {
+          "name": "build-test.sh  build-test.bat",
+          "tree_name": "build-test.sh build-test.bat",
+          "desc": {
+            "en": "build scripts (they never change the version)",
+            "es": "scripts de compilación (nunca cambian la versión)",
+            "de": "Build-Skripte (ändern die Version nie)",
+            "fr": "scripts de build (ils ne changent jamais la version)",
+            "it": "script di build (non cambiano mai la versione)",
+            "ja": "ビルドスクリプト（バージョンは変えません）",
+            "zh": "构建脚本（从不改变版本）",
+            "pt": "scripts de compilação (nunca mudam a versão)"
+          }
+        },
+        {
+          "name": "test.sh  test.bat",
+          "tree_name": "test.sh test.bat",
+          "desc": {
+            "en": "run the tests",
+            "es": "ejecutan las pruebas",
+            "de": "führen die Tests aus",
+            "fr": "lancent les tests",
+            "it": "eseguono i test",
+            "ja": "テストを実行",
+            "zh": "运行测试",
+            "pt": "executam os testes"
+          }
+        },
+        {
+          "name": "SECURITY  SUPPORT  CONTRIBUTING  LICENSE",
+          "tree_name": "SECURITY.md SUPPORT.md CONTRIBUTING.md CODE_OF_CONDUCT.md LICENSE LICENSE.md",
+          "desc": {
+            "en": "community and licence files",
+            "es": "comunidad y licencia",
+            "de": "Community und Lizenz",
+            "fr": "communauté et licence",
+            "it": "comunità e licenza",
+            "ja": "コミュニティとライセンス",
+            "zh": "社区与许可证",
+            "pt": "comunidade e licença"
+          },
+          "tree_desc": ""
+        }
+      ]
+    }
+  ]
+}
