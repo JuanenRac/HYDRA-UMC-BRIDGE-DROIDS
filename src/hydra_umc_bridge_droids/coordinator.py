@@ -21,6 +21,7 @@ import math
 from typing import Mapping
 
 from hydra_umc_sdk.bridge_contract import BridgeJob, CellState, JobPhase, MachineState
+from hydra_umc_sdk.job_intake import IdempotencyStore, JobIntake
 from hydra_umc_sdk.phase_coordinator import PhaseCoordinator
 
 
@@ -103,7 +104,11 @@ class DroidCoordinator:
         JobPhase.ABORT: HOLD_POSITION,
     }
 
-    def __init__(self) -> None:
+    def __init__(self, store: IdempotencyStore | None = None) -> None:
+        # what arrives as a message (handle_message) goes through the shared intake: retained and malformed messages stop there and a repeated idempotency key is not run twice.
+        # Without a file-backed store the keys live in memory and are lost at a restart; pass an IdempotencyStore(path) to keep them.
+        self._store = store if store is not None else IdempotencyStore()
+        self._intake = JobIntake(self._store)
         # the table of phases, the required parameters, the gate and the standalone requests are the shared coordinator of the SDK;
         # what this class keeps is what is specific to a droid: the meaning of its parameters
         self._phases = PhaseCoordinator(
@@ -150,6 +155,25 @@ class DroidCoordinator:
         if decision.action == "none":
             return DroidDispatch(False, "none", "job phase has no mapped droid action trigger")
         return DroidDispatch(decision.accepted, decision.action, decision.reason, parameters=dict(decision.parameters))
+
+    def handle_message(self, payload: Mapping[str, object], cell_state: CellState, observed_machine_state: MachineState | None = None, *, retained: bool = False) -> DroidDispatch:
+        """The entry point for a job that arrived as a message: retained and malformed ones are refused, a repeat of an idempotency key is not run a second time.
+
+        The ABORT phase (hold position) is the exception: it is forwarded again on a repeat, because repeating it is harmless and a first attempt that died half way
+        must not leave the droid walking. The answer given for a key is stored with it.
+        """
+
+        intake = self._intake.accept(payload, retained=retained)
+        if intake.job is None:
+            return DroidDispatch(False, "none", intake.reason)
+        job = intake.job
+        if not intake.accepted:
+            if job.phase is JobPhase.ABORT:
+                return self.dispatch(job, cell_state, observed_machine_state)
+            return DroidDispatch(False, "none", intake.reason)
+        result = self.dispatch(job, cell_state, observed_machine_state)
+        self._store.remember(job.idempotency_key, f"{'accepted' if result.accepted else 'refused'}: {result.action}: {result.reason}")
+        return result
 
     def sit_request(self) -> DroidDispatch:
         """Real, standalone SIT request - deliberately outside the

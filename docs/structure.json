@@ -78,14 +78,14 @@
         {
           "name": "tests/",
           "desc": {
-            "en": "72 tests, with a bosdyn-shaped Spot emulator",
-            "es": "72 pruebas, con un emulador de Spot con la forma de bosdyn",
-            "de": "72 Tests, mit einem bosdyn-förmigen Spot-Emulator",
-            "fr": "72 tests, avec un émulateur de Spot à la forme de bosdyn",
-            "it": "72 test, con un emulatore di Spot con la forma di bosdyn",
-            "ja": "72 件（bosdyn 形式の Spot エミュレーター付き）",
-            "zh": "72 项测试（含 bosdyn 形态的 Spot 模拟器）",
-            "pt": "72 testes, com um emulador de Spot com a forma do bosdyn"
+            "en": "79 tests, with a bosdyn-shaped Spot emulator",
+            "es": "79 pruebas, con un emulador de Spot con la forma de bosdyn",
+            "de": "79 Tests, mit einem bosdyn-förmigen Spot-Emulator",
+            "fr": "79 tests, avec un émulateur de Spot à la forme de bosdyn",
+            "it": "79 test, con un emulatore di Spot con la forma di bosdyn",
+            "ja": "79 件（bosdyn 形式の Spot エミュレーター付き）",
+            "zh": "79 项测试（含 bosdyn 形态的 Spot 模拟器）",
+            "pt": "79 testes, com um emulador de Spot com a forma do bosdyn"
           }
         },
         {
