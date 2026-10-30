@@ -19,7 +19,7 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB.svg" alt="Python">
   <img src="https://img.shields.io/badge/Safety-Fails%20Closed-red.svg" alt="Safety">
   <img src="https://img.shields.io/badge/Tests-79%20passing-2ea44f.svg" alt="Tests">
-  <img src="https://img.shields.io/badge/Version-0.1.3-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Version-0.1.4-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
@@ -34,7 +34,7 @@ GPL-3.0-or-later - see LICENSE
 
 | | |
 |---|---|
-| Versão | `0.1.3` |
+| Versão | `0.1.4` |
 | Maturidade | Funcional |
 | Testes | 79 (`python tools/build_test.py`) |
 | Tecnologia | Python / Boston Dynamics Spot SDK (bosdyn-client) / HYDRA-UMC-SDK |
@@ -225,7 +225,7 @@ HYDRA-UMC-BRIDGE-DROIDS/
 
 **Limites conhecidos hoje**
 
-**Real hoje:** versão `0.1.3`, funcional como núcleo de coordenação sem dependências (`DroidCoordinator`) com validação real de parâmetros por ordem, encaminhamento de fases com falha segura, um esquema de ações estático `plan-only`, um emissor real de comandos bosdyn-client para o Spot (`SpotDroidControl`) e scripts build-test que não alteram nada ligados ao CI com um checkout do SDK.
+**Real hoje:** versão `0.1.4`, funcional como núcleo de coordenação sem dependências (`DroidCoordinator`) com validação real de parâmetros por ordem, encaminhamento de fases com falha segura, um esquema de ações estático `plan-only`, um emissor real de comandos bosdyn-client para o Spot (`SpotDroidControl`) e scripts build-test que não alteram nada ligados ao CI com um checkout do SDK.
 
 **Fronteira de integração:** este bridge é apenas uma fronteira de coordenação: não é um nó de controlo de motores e não pode contornar o HYDRA-UMC-SERVER, os limites do MCU, os watchdogs nem a paragem de emergência (E-STOP); cada trabalho despachado continua a passar pela mesma porta partilhada que usam todos os bridges irmãos.
 
