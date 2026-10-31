@@ -189,9 +189,9 @@ class SpotDroidControl:
         if max_distance_m is not None:
             if not _is_finite_number(max_distance_m) or max_distance_m <= 0:
                 return SpotSendResult(False, f"max_distance_m must be a finite, positive number, got {max_distance_m!r}")
-            if math.hypot(goal_x, goal_y) > max_distance_m:
-                return SpotSendResult(False, f"the goal is {math.hypot(goal_x, goal_y):.1f} m away, beyond the {max_distance_m:g} m limit")
-        command = builder.synchro_trajectory_command_in_body_frame(goal_x, goal_y, goal_heading, frame_tree_snapshot)
+            if math.hypot(goal_x, goal_y) > max_distance_m:  # type: ignore[arg-type]
+                return SpotSendResult(False, f"the goal is {math.hypot(goal_x, goal_y):.1f} m away, beyond the {max_distance_m:g} m limit")  # type: ignore[arg-type]
+        command = builder.synchro_trajectory_command_in_body_frame(goal_x, goal_y, goal_heading, frame_tree_snapshot)  # type: ignore[arg-type]
         return self._send(command, sink, end_time_secs=clock() + command_timeout_s)
 
     @staticmethod

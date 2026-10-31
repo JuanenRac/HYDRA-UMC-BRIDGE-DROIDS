@@ -126,7 +126,7 @@ class BridgeAgainstSpotRobotTests(unittest.TestCase):
     def test_a_trajectory_end_time_already_in_the_past_comes_back_expired(self) -> None:
         self.control.stand(self.builder, self.spot, CellState.READY, MachineState.IDLE)
         command = self.builder.synchro_trajectory_command_in_body_frame(1.0, 1.0, 0.0, object())
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017
             self.spot.robot_command(command, end_time_secs=time.time() - 5)
         self.assertEqual(self.spot.last_status, STATUS_EXPIRED)
 

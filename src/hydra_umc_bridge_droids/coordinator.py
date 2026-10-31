@@ -154,7 +154,7 @@ class DroidCoordinator:
         decision = self._phases.decide(job, cell_state, observed_machine_state)
         if decision.action == "none":
             return DroidDispatch(False, "none", "job phase has no mapped droid action trigger")
-        return DroidDispatch(decision.accepted, decision.action, decision.reason, parameters=dict(decision.parameters))
+        return DroidDispatch(decision.accepted, decision.action, decision.reason, parameters=dict(decision.parameters))  # type: ignore[arg-type]
 
     def handle_message(self, payload: Mapping[str, object], cell_state: CellState, observed_machine_state: MachineState | None = None, *, retained: bool = False) -> DroidDispatch:
         """The entry point for a job that arrived as a message: retained and malformed ones are refused, a repeat of an idempotency key is not run a second time.
