@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A script for the bench:** `docs/BENCH_TESTS.md` lists the steps, the setup and the expected result of the tests that need a real robot; every step is marked as not executed.
+
 ## [0.1.4] - A message entry point with the shared intake and the universal README
 
 - **A message entry point with the shared intake:** `DroidCoordinator.handle_message()` takes a job as it arrives from a transport and applies the SDK's `JobIntake`: a retained message is ignored, a malformed one is refused (no exception) and a repeated idempotency key is not run a second time; the answer given is stored with the key (`DroidCoordinator(IdempotencyStore(path))` keeps the keys across a restart, the default keeps them in memory). A repeated ABORT (hold position) is still forwarded, since repeating it is harmless. 7 tests.
