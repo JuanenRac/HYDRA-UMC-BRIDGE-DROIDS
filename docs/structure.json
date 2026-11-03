@@ -45,6 +45,45 @@
           }
         },
         {
+          "name": "spot_session.py",
+          "desc": {
+            "en": "Spot session: e-stop, lease, power and state reading, failing closed",
+            "es": "sesión de Spot: paro de emergencia, lease, energía y lectura de estado, a prueba de fallos",
+            "de": "Spot-Sitzung: Not-Aus, Lease, Antrieb und Zustandslesung, ausfallsicher",
+            "fr": "session Spot : arrêt d'urgence, lease, puissance et lecture d'état, en sécurité intrinsèque",
+            "it": "sessione Spot: arresto di emergenza, lease, alimentazione e lettura dello stato, a prova di guasto",
+            "ja": "Spot セッション：非常停止・リース・電源・状態読み取り（フェイルクローズ）",
+            "zh": "Spot 会话：急停、租约、电机供电和状态读取，故障即关闭",
+            "pt": "sessão do Spot: paragem de emergência, lease, alimentação e leitura de estado, à prova de falhas"
+          }
+        },
+        {
+          "name": "spot_graphnav.py",
+          "desc": {
+            "en": "walk to a named waypoint of the recorded map; return home",
+            "es": "ir a un punto con nombre del mapa grabado; volver a casa",
+            "de": "zu einem benannten Wegpunkt der aufgezeichneten Karte fahren; nach Hause",
+            "fr": "aller à un point nommé de la carte enregistrée ; retour à la base",
+            "it": "andare a un punto con nome della mappa registrata; tornare a casa",
+            "ja": "記録済み地図の名前付きウェイポイントへ移動、ホームへ帰還",
+            "zh": "前往已录制地图中的命名路点；返回起点",
+            "pt": "ir a um ponto com nome do mapa gravado; regressar a casa"
+          }
+        },
+        {
+          "name": "spot_manipulation.py",
+          "desc": {
+            "en": "arm: pick a detected object, place within reach",
+            "es": "brazo: coger un objeto detectado, dejarlo al alcance",
+            "de": "Arm: erkanntes Objekt greifen, in Reichweite ablegen",
+            "fr": "bras : saisir un objet détecté, le poser à portée",
+            "it": "braccio: prendere un oggetto rilevato, posarlo entro la portata",
+            "ja": "アーム：検出した物体をつかむ、届く範囲に置く",
+            "zh": "机械臂：抓取已检测到的物体，在可达范围内放置",
+            "pt": "braço: agarrar um objeto detetado, pousá-lo ao alcance"
+          }
+        },
+        {
           "name": "spot_transport.py",
           "desc": {
             "en": "Spot commands through bosdyn-client: hold, sit, stand, walk_to",

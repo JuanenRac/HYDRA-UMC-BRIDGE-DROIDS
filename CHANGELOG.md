@@ -4,6 +4,12 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The bring-up of a Spot, in software:** `spot_session.py` does the sequence a real Spot needs before it can be commanded (register the software e-stop, take the lease, optionally power the motors), checks the e-stop and the lease in on every tick, and cuts the robot when a check-in is refused or the lease is lost. Every step fails closed. The motors are not powered on unless the configuration asks for it. Its values (timeouts, battery floor, age of a reading, power on after bring-up, home waypoint) are read from `config/spot_session.json`; an unknown key or an out-of-range value is an error, not a silent default.
+- **The state the gate reads comes from the robot:** `SpotSession.observed_machine_state()` turns the reading of the robot into the machine state the gate needs (e-stopped, faulted, motors off, low battery, walking, idle) and returns nothing when the reading is old, so a stale reading is never trusted.
+- **Named waypoints of the recorded map:** `spot_graphnav.py` sends WALK_TO to a waypoint by name and RETURN_HOME to the configured home waypoint; an unknown name sends nothing and every navigation command expires by itself.
+- **Pick and place with the arm:** `spot_manipulation.py` sends PICK_OBJECT only for an object the vision node reports and PLACE_OBJECT only with something in the gripper and inside the reach limit.
+- 39 tests with the Spot emulator and fakes. None of it has run against a real robot; `docs/BENCH_TESTS.md` lists the steps for the bench.
+
 ## [0.1.5] - The droid bridge ships a bench script that lists the steps and expected results of the tests that need a real robot, all marked as not executed
 
 - **A script for the bench:** `docs/BENCH_TESTS.md` lists the steps, the setup and the expected result of the tests that need a real robot; every step is marked as not executed.

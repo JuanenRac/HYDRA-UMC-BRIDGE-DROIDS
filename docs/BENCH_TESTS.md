@@ -27,6 +27,12 @@ Every test below is **not executed**: this bridge has only run against test doub
 | 8 | Press the physical e-stop during step 4. | The robot stops by itself; the bridge reports the failure and does not retry the motion. | not executed |
 | 9 | `sit`. | The robot stops and sits. | not executed |
 
+| 10 | Run `SpotSession.bring_up()` with `power_on_after_bring_up` false. | The e-stop endpoint registers, the lease is taken, the motors stay off. | not executed |
+| 11 | Take the lease from the tablet while the session ticks. | The next tick reports the lease lost, cuts the session and the state reads SAFE_STOP. | not executed |
+| 12 | Stop the process during a walk. | The e-stop check-in stops and the robot cuts its motors within `estop_timeout_s`. | not executed |
+| 13 | `return_home` and `go_to_waypoint` with a map recorded on the robot. | The robot walks to the waypoint and the status reads reached; an unknown name sends nothing. | not executed |
+| 14 | `pick` an object the vision node reports, then `place` inside the reach. | The arm grasps and places it; an object that is not reported is not grasped. | not executed |
+
 ## What this bench cannot show
 
-The lease, the keep-alive and the reading of the robot state are not part of the bridge yet, so a lost network or a lease taken by another operator is not covered by any step above.
+The session, the waypoint navigation and the arm are tested against the emulator and fakes only. How a real robot answers the lease, the e-stop endpoint and the manipulation service is what steps 10 to 14 are for.

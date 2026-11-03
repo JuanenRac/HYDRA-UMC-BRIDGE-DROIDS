@@ -10,9 +10,21 @@ from hydra_umc_sdk.bridge_contract import BridgeJob, CellState, JobPhase, Machin
 
 from .coordinator import DroidActionPlan, DroidCoordinator, DroidDispatch
 from .platform_profiles import MOBILE_MANIPULATOR, MOBILE_ONLY, PROFILES, PlatformProfile, SimulatedDroid, check_against_profile
+from .spot_graphnav import GraphNavResult, SpotGraphNav
+from .spot_manipulation import ArmResult, SpotArmControl
+from .spot_session import SessionResult, SpotSession, SpotSessionConfig, load_session_config, open_bosdyn_session
 from .spot_transport import SpotDroidControl, SpotSendResult, open_bosdyn_robot_command
 
 __all__ = [
+    "GraphNavResult",
+    "SpotGraphNav",
+    "ArmResult",
+    "SpotArmControl",
+    "SessionResult",
+    "SpotSession",
+    "SpotSessionConfig",
+    "load_session_config",
+    "open_bosdyn_session",
     "BridgeJob",
     "CellState",
     "JobPhase",

@@ -25,13 +25,11 @@ bosdyn-client/src/bosdyn/client/robot_command), never guessed:
   this process or its network goes away, the robot's own command expires
   instead of walking on to the goal unsupervised.
 
-What this module does NOT do yet, and a real Spot needs before it can be
-commanded at all: registering a software E-stop endpoint with its keep-alive
-(the dead-man that cuts the robot when this bridge dies), acquiring and
-keeping the lease, and powering the motors on. `open_bosdyn_robot_command()`
-only authenticates and syncs time; those steps, and RETURN_HOME / PICK_OBJECT /
-PLACE_OBJECT, have no transport here. Nothing in this module has run against a
-real Spot.
+What this module does not do: registering the software E-stop endpoint, acquiring the
+lease and powering the motors on are in `spot_session.py`; RETURN_HOME and a walk to a named
+waypoint are in `spot_graphnav.py`; PICK_OBJECT / PLACE_OBJECT are in `spot_manipulation.py`.
+`open_bosdyn_robot_command()` only authenticates and syncs time. Nothing in this module has run
+against a real Spot.
 
 Both the command builder and the command sink are written against small
 Protocols matching bosdyn-client's own real method signatures, so the

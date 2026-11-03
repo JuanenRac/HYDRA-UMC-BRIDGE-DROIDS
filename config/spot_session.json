@@ -1,0 +1,8 @@
+{
+  "estop_timeout_s": 9.0,
+  "power_timeout_s": 30.0,
+  "min_battery_pct": 20.0,
+  "max_state_age_s": 5.0,
+  "power_on_after_bring_up": false,
+  "home_waypoint": "home"
+}
