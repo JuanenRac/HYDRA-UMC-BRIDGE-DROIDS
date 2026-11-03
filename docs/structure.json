@@ -141,6 +141,19 @@
           }
         },
         {
+          "name": "config/",
+          "desc": {
+            "en": "Spot session values",
+            "es": "valores de la sesión de Spot",
+            "de": "Sitzungswerte des Spot",
+            "fr": "valeurs de session du Spot",
+            "it": "valori di sessione dello Spot",
+            "ja": "Spot のセッション値",
+            "zh": "Spot 会话参数",
+            "pt": "valores da sessão do Spot"
+          }
+        },
+        {
           "name": "tools/",
           "desc": {
             "en": "project tools, CI checks, version bump",

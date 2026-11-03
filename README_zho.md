@@ -215,6 +215,7 @@ HYDRA-UMC-BRIDGE-DROIDS/
 │   └── spot_transport.py          通过 bosdyn-client 向 Spot 发命令：hold、sit、stand、walk_to
 ├── tests/                         79 项测试（含 bosdyn 形态的 Spot 模拟器）
 ├── docs/                          桥接指南
+├── config/                        Spot 会话参数
 ├── tools/                         构建与测试运行器、版本提升、CI 校验、README 与图片的生成和检查
 ├── images/                        横幅图与 README 的图片
 ├── .github/                       CI 工作流和 Issue 模板
