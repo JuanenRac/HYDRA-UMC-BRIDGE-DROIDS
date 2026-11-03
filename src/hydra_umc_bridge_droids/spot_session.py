@@ -211,10 +211,16 @@ class SpotSession:
         batteries = state.get("battery_states")
         if not isinstance(batteries, (list, tuple)) or not batteries:
             return None
-        levels = [b.get("charge_percentage") for b in batteries if isinstance(b, Mapping)]
-        # a real RobotState dictionary wraps the number as {"value": 74.0}
-        levels = [v.get("value") if isinstance(v, Mapping) else v for v in levels]
-        levels = [float(v) for v in levels if _is_number(v)]  # type: ignore[arg-type]
+        levels: list[float] = []
+        for entry in batteries:
+            if not isinstance(entry, Mapping):
+                continue
+            level = entry.get("charge_percentage")
+            # a real RobotState dictionary wraps the number as {"value": 74.0}
+            if isinstance(level, Mapping):
+                level = level.get("value")
+            if _is_number(level):
+                levels.append(float(level))  # type: ignore[arg-type]
         return min(levels) if levels else None
 
     def observed_machine_state(self) -> MachineState | None:
@@ -282,7 +288,7 @@ def open_bosdyn_session(hostname: str, username: str, password: str, config: Spo
         raise RuntimeError("bosdyn-client is not installed - install it to open a session with a real Spot") from error
     from google.protobuf import json_format  # type: ignore[import-untyped]
 
-    config = config or SpotSessionConfig()
+    settings = config or SpotSessionConfig()
     sdk = bosdyn.client.create_standard_sdk("hydra-umc-bridge-droids")
     robot = sdk.create_robot(hostname)
     robot.authenticate(username, password)
@@ -295,7 +301,7 @@ def open_bosdyn_session(hostname: str, username: str, password: str, config: Spo
         keep_alive = None
 
         def register(self) -> None:
-            endpoint = bosdyn.client.estop.EstopEndpoint(estop_client, "hydra-umc-bridge-droids", config.estop_timeout_s)
+            endpoint = bosdyn.client.estop.EstopEndpoint(estop_client, "hydra-umc-bridge-droids", settings.estop_timeout_s)
             endpoint.force_simple_setup()
             self.keep_alive = bosdyn.client.estop.EstopKeepAlive(endpoint)
 
@@ -336,4 +342,4 @@ def open_bosdyn_session(hostname: str, username: str, password: str, config: Spo
         def get_robot_state(self) -> Mapping[str, object]:
             return json_format.MessageToDict(state_client.get_robot_state(), preserving_proto_field_name=True)
 
-    return SpotSession(_Estop(), _Lease(), _Power(), _State(), config)
+    return SpotSession(_Estop(), _Lease(), _Power(), _State(), settings)
