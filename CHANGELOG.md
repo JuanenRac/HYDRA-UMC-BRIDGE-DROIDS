@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.1.5] - The droid bridge ships a bench script that lists the steps and expected results of the tests that need a real robot, all marked as not executed
+
 - **A script for the bench:** `docs/BENCH_TESTS.md` lists the steps, the setup and the expected result of the tests that need a real robot; every step is marked as not executed.
 
 ## [0.1.4] - A message entry point with the shared intake and the universal README
