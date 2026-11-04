@@ -4,5 +4,7 @@
   "min_battery_pct": 20.0,
   "max_state_age_s": 5.0,
   "power_on_after_bring_up": false,
-  "home_waypoint": "home"
+  "home_waypoint": "home",
+  "cut_on_global_stop": true,
+  "tick_interval_s": 2.0
 }

@@ -67,10 +67,12 @@ class SpotSessionConfig:
     max_state_age_s: float = 5.0
     power_on_after_bring_up: bool = False
     home_waypoint: str = "home"
+    cut_on_global_stop: bool = True
+    tick_interval_s: float = 2.0
 
     def problems(self) -> list[str]:
         found: list[str] = []
-        for name in ("estop_timeout_s", "power_timeout_s", "max_state_age_s"):
+        for name in ("estop_timeout_s", "power_timeout_s", "max_state_age_s", "tick_interval_s"):
             value = getattr(self, name)
             if not _positive(value):
                 found.append(f"{name} must be a finite, positive number")
@@ -78,6 +80,8 @@ class SpotSessionConfig:
             found.append("min_battery_pct must be between 0 and 100")
         if not isinstance(self.power_on_after_bring_up, bool):
             found.append("power_on_after_bring_up must be true or false")
+        if not isinstance(self.cut_on_global_stop, bool):
+            found.append("cut_on_global_stop must be true or false")
         if not isinstance(self.home_waypoint, str) or not self.home_waypoint.strip():
             found.append("home_waypoint must be a non-empty name")
         return found
@@ -266,6 +270,11 @@ class SpotSession:
                 steps.append(f"{name} failed: {error}")
         self.ready = False
         return SessionResult(True, "closed", tuple(steps))
+
+    def cut(self, reason: str) -> None:
+        """Cut the robot from outside the session (a global stop, a zone violation): the e-stop endpoint stops being checked in and the session is no longer ready."""
+        if not self.cut_reason:
+            self._cut(reason)
 
     def _cut(self, reason: str) -> None:
         self.cut_reason = reason
