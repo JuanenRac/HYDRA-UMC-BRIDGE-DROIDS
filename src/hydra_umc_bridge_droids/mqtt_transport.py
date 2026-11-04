@@ -14,6 +14,8 @@ Topics (under the `hydra/bridges/<name>/...` convention of the broker):
   hydra/bridges/droids/cmd/estop          -> (empty) cut the robot (the software e-stop endpoint stops being checked in)
   hydra/bridges/droids/cmd/<verb>/result  <- one JSON answer per command
 
+  hydra/bridges/droids/settings           -> retained, from the server: the switches of Server Admin (only listened to when HYDRA_UMC_DROIDS_REMOTE_SETTINGS=1)
+
 The global stop is the shared one of the SDK (`hydra_umc_sdk.global_stop`, off by default). While it is on and the server announces `SAFE_STOP`, a job is refused
 (an abort is let through) and, when `cut_on_global_stop` is true in the session configuration (the default), the Spot session is cut at the moment of the announcement:
 the keep-alive of the software e-stop ends, which is what stops a Spot whose bridge is no longer allowed to move it. The robot is not brought back by `READY`: a cut
@@ -24,6 +26,7 @@ session is started again by the operator (a new bring-up).
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import logging
 import threading
@@ -33,9 +36,10 @@ from typing import Callable
 from hydra_umc_sdk.bridge_contract import CellState, MachineState
 from hydra_umc_sdk.bridge_transport import BridgeHardening, MqttPublish, hardening_from_environment, open_bridge_client
 from hydra_umc_sdk.bridge_transport import MessageDispatcher as SharedMessageDispatcher
-from hydra_umc_sdk.global_stop import STATE_READY, GlobalStopGuard, GlobalStopSettings, follow_on_connect
+from hydra_umc_sdk.global_stop import STATE_READY, GlobalStopGuard, GlobalStopSettings
 
 from .coordinator import DroidCoordinator
+from .remote_settings import SETTINGS_TOPIC, parse_remote_settings, remote_settings_allowed
 from .spot_session import SpotSession
 
 TOPIC_PREFIX = "hydra/bridges/droids/"
@@ -68,6 +72,7 @@ class DroidMqttBridge:
         *,
         clock: Callable[[], float] = time.time,
         global_stop: GlobalStopGuard | GlobalStopSettings | None = None,
+        remote_settings: bool | None = None,
     ) -> None:
         self._coordinator = coordinator
         self._cell_state = cell_state
@@ -79,6 +84,26 @@ class DroidMqttBridge:
             self.global_stop = GlobalStopGuard(global_stop)
         else:
             self.global_stop = GlobalStopGuard.from_environment(GLOBAL_STOP_ENVIRONMENT_NAME)
+        self.remote_settings = remote_settings_allowed() if remote_settings is None else bool(remote_settings)
+
+    # -- the switches announced by the server ------------------------------
+    def note_remote_settings(self, payload: bytes, client: object = None) -> dict[str, bool]:
+        """Apply the switches of a settings message and return what was applied ({} when the host does not allow remote settings or the message is not valid)."""
+        if not self.remote_settings:
+            return {}
+        found = parse_remote_settings(payload)
+        if not found:
+            return {}
+        session = self.session
+        if "cutOnGlobalStop" in found and session is not None:
+            session.config = dataclasses.replace(session.config, cut_on_global_stop=found["cutOnGlobalStop"])
+        if "globalStop" in found:
+            settings = self.global_stop.settings
+            self.global_stop.settings = dataclasses.replace(settings, enabled=found["globalStop"])
+            if found["globalStop"] and client is not None:
+                client.subscribe(self.global_stop.topic, qos=1)  # type: ignore[attr-defined]
+        _LOG.info("remote settings applied: %s", ", ".join(f"{key}={value}" for key, value in sorted(found.items())))
+        return found
 
     # -- the global stop -------------------------------------------------
     def note_global_stop(self, payload: bytes) -> str:
@@ -170,10 +195,27 @@ class MessageDispatcher(SharedMessageDispatcher):
 
     def on_message(self, client: object, userdata: object, message: object) -> None:
         guard = self._droid_bridge.global_stop
+        if self._droid_bridge.remote_settings and getattr(message, "topic", None) == SETTINGS_TOPIC:
+            self._droid_bridge.note_remote_settings(bytes(message.payload), client)  # type: ignore[attr-defined]
+            return
         if guard.enabled and getattr(message, "topic", None) == guard.topic:
             self._droid_bridge.note_global_stop(bytes(message.payload))  # type: ignore[attr-defined]
             return
         super().on_message(client, userdata, message)
+
+
+def _on_connected(bridge: DroidMqttBridge):
+    """After every (re)connect: follow the announcement of the global stop (when it is on) and the retained settings of the server (when the host allows them)."""
+    if not bridge.global_stop.enabled and not bridge.remote_settings:
+        return None
+
+    def on_connected(client: object) -> None:
+        if bridge.remote_settings:
+            client.subscribe(SETTINGS_TOPIC, qos=1)  # type: ignore[attr-defined]
+        if bridge.global_stop.enabled:
+            client.subscribe(bridge.global_stop.topic, qos=1)  # type: ignore[attr-defined]
+
+    return on_connected
 
 
 def run_forever(
@@ -215,7 +257,7 @@ def run_forever(
             password=password,
             max_connect_attempts=max_connect_attempts,
             connect_retry_delay_seconds=connect_retry_delay_seconds,
-            on_connected=follow_on_connect(bridge.global_stop),
+            on_connected=_on_connected(bridge),
             **hardening.connect_kwargs(),
         )
         client.loop_forever()  # type: ignore[attr-defined]
