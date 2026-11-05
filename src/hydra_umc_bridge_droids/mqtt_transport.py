@@ -39,7 +39,7 @@ from hydra_umc_sdk.bridge_transport import MessageDispatcher as SharedMessageDis
 from hydra_umc_sdk.global_stop import STATE_READY, GlobalStopGuard, GlobalStopSettings
 
 from .coordinator import DroidCoordinator
-from .remote_settings import SETTINGS_TOPIC, parse_remote_settings, remote_settings_allowed
+from .remote_settings import SETTINGS_TOPIC, SettingsVerifier, parse_remote_settings, remote_settings_allowed
 from .spot_session import SpotSession
 
 TOPIC_PREFIX = "hydra/bridges/droids/"
@@ -73,6 +73,7 @@ class DroidMqttBridge:
         clock: Callable[[], float] = time.time,
         global_stop: GlobalStopGuard | GlobalStopSettings | None = None,
         remote_settings: bool | None = None,
+        settings_verifier: SettingsVerifier | None = None,
     ) -> None:
         self._coordinator = coordinator
         self._cell_state = cell_state
@@ -84,14 +85,19 @@ class DroidMqttBridge:
             self.global_stop = GlobalStopGuard(global_stop)
         else:
             self.global_stop = GlobalStopGuard.from_environment(GLOBAL_STOP_ENVIRONMENT_NAME)
-        self.remote_settings = remote_settings_allowed() if remote_settings is None else bool(remote_settings)
+        # the retained settings are followed only when the host allows them AND holds the key that signs them (settings_verifier); an unsigned message never counts
+        wanted = remote_settings_allowed() if remote_settings is None else bool(remote_settings)
+        self.settings_verifier = (settings_verifier if settings_verifier is not None else SettingsVerifier.from_environment()) if wanted else None
+        self.remote_settings = bool(wanted and self.settings_verifier is not None and self.settings_verifier.usable)
+        if wanted and not self.remote_settings:
+            _LOG.warning("remote settings are allowed but there is no usable key for them: they stay off")
 
     # -- the switches announced by the server ------------------------------
     def note_remote_settings(self, payload: bytes, client: object = None) -> dict[str, bool]:
         """Apply the switches of a settings message and return what was applied ({} when the host does not allow remote settings or the message is not valid)."""
         if not self.remote_settings:
             return {}
-        found = parse_remote_settings(payload)
+        found = parse_remote_settings(payload, self.settings_verifier)
         if not found:
             return {}
         session = self.session
