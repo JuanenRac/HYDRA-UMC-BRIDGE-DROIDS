@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.1.6] - The bridge starts as a service: python -m hydraumcbridgedroids reads config/bridge.json (broker, client id, connection retries and, optionally, the Spot to open) and config/spotsession.json, brings up the Spot session when a... (and 11 more changes)
+
 - **The bridge starts as a service:** `python -m hydra_umc_bridge_droids` reads `config/bridge.json` (broker, client id, connection retries and, optionally, the Spot to open) and `config/spot_session.json`, brings up the Spot session when a Spot is named (the service stops with a non-zero status if the bring-up fails, so the service manager restarts it) and serves the MQTT topics. The passwords are read from the files the configuration names, never from the configuration itself or the command line. Without a Spot the bridge only gates jobs. `--check` validates the configuration and opens nothing; a mistyped key or a value of the wrong type is an error. 9 more tests. Not run against a real broker or a real Spot.
 
 - **The build test of the repository compiles only on CI or when allowed:** for the stacks that compile (`rust`, `go`, `android`, `flutter`, `firmware-c`), `tools/build_test.py` prints `BUILD_TEST=SKIPPED` with exit status 2 on a plain PC, never a pass; `ALLOW_LOCAL_BUILD=1` allows it and a CI runner always may. The `python` and `node` stacks are not locked.
