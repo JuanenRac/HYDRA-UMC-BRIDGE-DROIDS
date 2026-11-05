@@ -1,0 +1,17 @@
+{
+  "mqtt": {
+    "host": "127.0.0.1",
+    "port": 1883,
+    "client_id": "hydra-umc-bridge-droids",
+    "username": "",
+    "password_file": "",
+    "max_connect_attempts": 5,
+    "connect_retry_delay_seconds": 2.0
+  },
+  "spot": {
+    "host": "",
+    "username": "",
+    "password_file": ""
+  },
+  "session_config": "config/spot_session.json"
+}
