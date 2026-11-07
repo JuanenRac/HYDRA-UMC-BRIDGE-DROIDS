@@ -20,6 +20,7 @@ workflow named "Simulation bench" does exactly this on a clean Linux runner on e
 |------|-------------------|
 | `tests/test_spot_emulator.py` | the emulator: accepted and refused commands |
 | `tests/test_spot_session.py` | session bring-up with a fake emergency stop, lease, power and state |
+| `tests/test_spot_map_arm_emulated.py` | named-waypoint walks and pick and place on an emulated map and gripper, cut half-way by the emergency stop or a global stop |
 | `tests/test_spot_transport.py` | the real transport against the emulator |
 | `tests/test_coordinator.py` | the coordinator and its gate |
 | `tests/test_mqtt_transport.py` | the topic dispatch, QoS, idempotency and limits without a broker |

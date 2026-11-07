@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **GraphNav and arm scenarios against the emulated robot:** `tests/spot_map_arm_emulator.py` adds a map with named waypoints and a gripper that follow the posture, the motor power and the emergency stop of the emulated Spot, and `tests/test_spot_map_arm_emulated.py` runs the walk to a waypoint (reached, stuck, lost), the cut of a walk by the emergency stop and by a global stop, and pick and place with a grasp that is refused, dropped or out of reach. Simulator evidence only; nothing here has run against a real Spot.
 - **A visible simulation bench:** the workflow "Simulation bench" runs the emulators and fakes of the bridge without hardware on every push, by hand and once a week; `docs/SIMULATION.md` says what it exercises and what it cannot show.
 
 ## [0.1.6] - The bridge starts as a service: python -m hydraumcbridgedroids reads config/bridge.json (broker, client id, connection retries and, optionally, the Spot to open) and config/spotsession.json, brings up the Spot session when a... (and 11 more changes)
