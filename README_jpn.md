@@ -25,7 +25,7 @@ GPL-3.0-or-later - see LICENSE
 
 ---
 
-> **誠実性チェック - 今日実際に動くもの:** 依存関係のない調整コア（`coordinator.py` の `DroidCoordinator`。すべてのディスパッチは `HYDRA-UMC-SDK` 自身の本物の `evaluate_job()` を通過する）と Boston Dynamics Spot コマンド送信部（`spot_transport.py` の `SpotDroidControl`）は本物であり、160件の通過するユニットテストで検証されている（`python tools/build_test.py` - `test_coordinator.py`、`test_spot_transport.py`、および実際のロボットではなくプロトコルに忠実な手書きの Spot エミュレータに対してブリッジを動かす `test_spot_emulator.py`）。これらはいずれも、本物の `bosdyn-client` インストール、本物のネットワーク接続、あるいは物理的な Spot・droid に対しては検証されていない - `test_spot_transport.py` 独自の `FakeBuilder`/`FakeSink` が `bosdyn-client` を完全に置き換えており（本物のライブラリがインストールされていなくてもこれらのテストは通過する）、トランスポート（Wi-Fi/BT/4G-5G）も物理的な droid プラットフォームもまだ検証されていないため、実機向けの `run` コマンドもまだ存在しない。詳細は下記の「ロードマップと既知の制限」に既に明記されており、これまでに実際に出荷された内容は `CHANGELOG.md` を参照。
+> **誠実性チェック - 今日実際に動くもの:** 依存関係のない調整コア（`coordinator.py` の `DroidCoordinator`。すべてのディスパッチは `HYDRA-UMC-SDK` 自身の本物の `evaluate_job()` を通過する）と Boston Dynamics Spot コマンド送信部（`spot_transport.py` の `SpotDroidControl`）は本物であり、184件の通過するユニットテストで検証されている（`python tools/build_test.py` - `test_coordinator.py`、`test_spot_transport.py`、および実際のロボットではなくプロトコルに忠実な手書きの Spot エミュレータに対してブリッジを動かす `test_spot_emulator.py`）。これらはいずれも、本物の `bosdyn-client` インストール、本物のネットワーク接続、あるいは物理的な Spot・droid に対しては検証されていない - `test_spot_transport.py` 独自の `FakeBuilder`/`FakeSink` が `bosdyn-client` を完全に置き換えており（本物のライブラリがインストールされていなくてもこれらのテストは通過する）、トランスポート（Wi-Fi/BT/4G-5G）も物理的な droid プラットフォームもまだ検証されていないため、実機向けの `run` コマンドもまだ存在しない。詳細は下記の「ロードマップと既知の制限」に既に明記されており、これまでに実際に出荷された内容は `CHANGELOG.md` を参照。
 
 > **安全性とセキュリティの現状:** このエコシステムは認証された安全システムではありません。ハードウェアの E-STOP 経路、ファームウェアが強制する制限やインターロック、検証済みの動作コマンドはまだありません。ファームウェアイメージは CRC-32 と Ed25519 署名で検査し、リリースビルドは公開済みの開発用鍵を拒否します(リレーの先のツールヘッドと拡張ボードは引き続き URTC のブートローダーを使い、署名ではなく共有鍵の HMAC-SHA256 を使います)。TLS と相互 TLS は任意で、既定では無効です。独自基板はまだ実装も試験もされていません。ここに書かれた内容を人の安全のために頼る前に、[セキュリティベースライン](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)と[脅威モデル](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)をお読みください。
 
@@ -185,7 +185,7 @@ bash build-test.sh
 bash build.sh
 ```
 
-`build-test` は `src/` 配下の各モジュールを `py_compile` でコンパイルし、`tests/` 配下で検出される `unittest` の全スイート(すべての `test_*.py` - 160件のテスト)を実行する —— 実際のドロイド接続もネットワークもなく決定論的に動作し、バージョンやCHANGELOGを変更しない。`build` はまず同じ検証を実行し、成功した場合のみ `tools/bump_version.py` を呼び出して `pyproject.toml`、`hydra-umc.project.json`、`CHANGELOG.md` の間でバージョンを同期する。実際のハードウェア向け `run` コマンドはまだ存在しない —— それには検証済みのトランスポートアダプターと実際のドロイドプラットフォームが必要である。
+`build-test` は `src/` 配下の各モジュールを `py_compile` でコンパイルし、`tests/` 配下で検出される `unittest` の全スイート(すべての `test_*.py` - 184件のテスト)を実行する —— 実際のドロイド接続もネットワークもなく決定論的に動作し、バージョンやCHANGELOGを変更しない。`build` はまず同じ検証を実行し、成功した場合のみ `tools/bump_version.py` を呼び出して `pyproject.toml`、`hydra-umc.project.json`、`CHANGELOG.md` の間でバージョンを同期する。実際のハードウェア向け `run` コマンドはまだ存在しない —— それには検証済みのトランスポートアダプターと実際のドロイドプラットフォームが必要である。
 
 ## 🩺 トラブルシューティング
 
