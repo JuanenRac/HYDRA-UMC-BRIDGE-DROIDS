@@ -33,7 +33,7 @@ jobs:
         with:
           repository: JuanenRac/HYDRA-UMC-SDK
           path: .hydra-umc-sdk-contract
-          ref: v0.5.8
+          ref: v0.5.9
           persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
@@ -51,5 +51,6 @@ jobs:
           test_spot_emulator
           test_spot_session
           test_spot_transport
+          test_spot_map_arm_emulated
           test_coordinator
           test_mqtt_transport
