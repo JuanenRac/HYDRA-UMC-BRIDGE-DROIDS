@@ -37,6 +37,10 @@ Set `HYDRA_UMC_SDK_ROOT` when the SDK is not a sibling checkout. Use `build-test
 
 Keep a new script in the repository root only when it is an operator entry point. Add the standard copyright header, state whether it mutates version/CHANGELOG, print numbered steps, and end `.bat` scripts with `pause`. Put reusable Python logic under `tools/`, compile it in `tools/build_test.py`, add deterministic tests and document the command in the README and this guide. A script must not open a real transport, discover a droid or send a command implicitly.
 
+## Link watchdog
+
+The session counts how long the robot has gone without answering a state reading. `link_silent_s` and `link_lost` (true after `max_link_loss_s`, 10 s by default) travel in the retained `state`. The switch `cut_on_link_loss` in `config/spot_session.json` is off by default: with it off the watchdog only reports; with it on the keep-alive cuts the session once the link is lost.
+
 ## Hardware acceptance gate
 
 Before deploying an adapter: select the real transport (Wi-Fi/BT/4G-5G) and its authentication, document the droid's own command interface and every action trigger's real parameter mapping, bind authenticated droid identity, verify stale/disconnected-state behavior, test `HOLD_POSITION` independently as a real safe fallback (the stop command is implemented; the E-Stop keep-alive it should sit beside is not), and perform bench validation before any occupied-space test. The droid's own onboard controller remains responsible for balance and motion safety.

@@ -69,10 +69,12 @@ class SpotSessionConfig:
     home_waypoint: str = "home"
     cut_on_global_stop: bool = True
     tick_interval_s: float = 2.0
+    cut_on_link_loss: bool = False
+    max_link_loss_s: float = 10.0
 
     def problems(self) -> list[str]:
         found: list[str] = []
-        for name in ("estop_timeout_s", "power_timeout_s", "max_state_age_s", "tick_interval_s"):
+        for name in ("estop_timeout_s", "power_timeout_s", "max_state_age_s", "tick_interval_s", "max_link_loss_s"):
             value = getattr(self, name)
             if not _positive(value):
                 found.append(f"{name} must be a finite, positive number")
@@ -82,6 +84,8 @@ class SpotSessionConfig:
             found.append("power_on_after_bring_up must be true or false")
         if not isinstance(self.cut_on_global_stop, bool):
             found.append("cut_on_global_stop must be true or false")
+        if not isinstance(self.cut_on_link_loss, bool):
+            found.append("cut_on_link_loss must be true or false")
         if not isinstance(self.home_waypoint, str) or not self.home_waypoint.strip():
             found.append("home_waypoint must be a non-empty name")
         return found
@@ -139,6 +143,7 @@ class SpotSession:
     cut_reason: str = field(default="", init=False)
     _last_state: Mapping[str, object] | None = field(default=None, init=False, repr=False)
     _last_state_at: float = field(default=0.0, init=False, repr=False)
+    _link_down_since: float | None = field(default=None, init=False, repr=False)
 
     def bring_up(self) -> SessionResult:
         problems = self.config.problems()
@@ -197,17 +202,37 @@ class SpotSession:
             self._cut("the lease was taken by another operator or expired")
             return SessionResult(False, self.cut_reason)
         if self.read_state() is None:
+            if self.link_lost and self.config.cut_on_link_loss:
+                self._cut(f"the link to the robot has been silent for {self.link_silent_s:g} s")
+                return SessionResult(False, self.cut_reason)
             return SessionResult(True, "alive, but the state could not be refreshed")
         return SessionResult(True, "alive")
+
+    @property
+    def link_silent_s(self) -> float:
+        """Seconds the robot has gone without answering a state reading (0 while it answers)."""
+
+        if self._link_down_since is None:
+            return 0.0
+        return max(0.0, self.clock() - self._link_down_since)
+
+    @property
+    def link_lost(self) -> bool:
+        """True once the robot has been silent for `max_link_loss_s`: the link watchdog."""
+
+        return self._link_down_since is not None and self.link_silent_s >= self.config.max_link_loss_s
 
     def read_state(self) -> Mapping[str, object] | None:
         try:
             state = self.state_reader.get_robot_state()
         except Exception:
-            return None
+            state = None
         if not isinstance(state, Mapping):
+            if self._link_down_since is None:
+                self._link_down_since = self.clock()
             return None
         self._last_state, self._last_state_at = state, self.clock()
+        self._link_down_since = None
         return state
 
     @staticmethod

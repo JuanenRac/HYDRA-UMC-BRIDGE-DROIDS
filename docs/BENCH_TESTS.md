@@ -32,6 +32,7 @@ Every test below is **not executed**: this bridge has only run against test doub
 | 12 | Stop the process during a walk. | The e-stop check-in stops and the robot cuts its motors within `estop_timeout_s`. | not executed |
 | 13 | `return_home` and `go_to_waypoint` with a map recorded on the robot. | The robot walks to the waypoint and the status reads reached; an unknown name sends nothing. | not executed |
 | 14 | `pick` an object the vision node reports, then `place` inside the reach. | The arm grasps and places it; an object that is not reported is not grasped. | not executed |
+| 15 | Switch off the Wi-Fi of the robot with `cut_on_link_loss` on and wait `max_link_loss_s`. | The retained state reports `link_lost`, the session is cut and the state reads SAFE_STOP; with the switch off it only reports. | not executed |
 
 ## What this bench cannot show
 

@@ -385,3 +385,89 @@ class ArmTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LinkWatchdogTests(unittest.TestCase):
+    """The link watchdog: how long the robot has been silent, and the switch (off by default) that cuts it."""
+
+    def _ready(self, **values):
+        session, robot, parts, clock = make_session(SpotSessionConfig(**values))
+        self.assertTrue(session.bring_up().ok)
+        return session, parts, clock
+
+    def test_a_robot_that_answers_has_no_silence(self):
+        session, _, clock = self._ready()
+        clock.now += 30
+        self.assertTrue(session.tick().ok)
+        self.assertEqual(session.link_silent_s, 0.0)
+        self.assertFalse(session.link_lost)
+
+    def test_silence_is_counted_from_the_first_failed_reading(self):
+        session, parts, clock = self._ready(max_link_loss_s=10)
+        parts["state"].fail = True
+        clock.now += 2
+        session.tick()
+        clock.now += 6
+        session.tick()
+        self.assertAlmostEqual(session.link_silent_s, 6.0)
+        self.assertFalse(session.link_lost)
+        clock.now += 4
+        session.tick()
+        self.assertTrue(session.link_lost)
+
+    def test_the_watchdog_only_reports_while_the_switch_is_off(self):
+        session, parts, clock = self._ready(max_link_loss_s=5)
+        parts["state"].fail = True
+        for _ in range(4):
+            clock.now += 5
+            result = session.tick()
+        self.assertTrue(session.link_lost)
+        self.assertTrue(result.ok)
+        self.assertTrue(session.ready)
+        self.assertNotIn("cut", parts["estop"].calls)
+
+    def test_with_the_switch_on_a_lost_link_cuts_the_session(self):
+        session, parts, clock = self._ready(cut_on_link_loss=True, max_link_loss_s=5)
+        parts["state"].fail = True
+        clock.now += 1
+        self.assertTrue(session.tick().ok)
+        clock.now += 5
+        result = session.tick()
+        self.assertFalse(result.ok)
+        self.assertIn("silent", result.reason)
+        self.assertIn("cut", parts["estop"].calls)
+        self.assertEqual(session.observed_machine_state(), MachineState.SAFE_STOP)
+
+    def test_an_answer_resets_the_silence(self):
+        session, parts, clock = self._ready(cut_on_link_loss=True, max_link_loss_s=5)
+        parts["state"].fail = True
+        clock.now += 4
+        session.tick()
+        parts["state"].fail = False
+        clock.now += 4
+        self.assertTrue(session.tick().ok)
+        self.assertEqual(session.link_silent_s, 0.0)
+        parts["state"].fail = True
+        clock.now += 4
+        self.assertTrue(session.tick().ok)
+
+    def test_a_reading_that_is_not_a_mapping_counts_as_silence(self):
+        session, parts, clock = self._ready(max_link_loss_s=3)
+        parts["state"].get_robot_state = lambda: ["not", "a", "mapping"]
+        clock.now += 1
+        session.tick()
+        clock.now += 3
+        session.tick()
+        self.assertTrue(session.link_lost)
+
+    def test_the_configuration_checks_the_new_values(self):
+        self.assertIn("max_link_loss_s", "; ".join(SpotSessionConfig(max_link_loss_s=0).problems()))
+        self.assertIn("max_link_loss_s", "; ".join(SpotSessionConfig(max_link_loss_s=float("nan")).problems()))
+        self.assertIn("cut_on_link_loss", "; ".join(SpotSessionConfig(cut_on_link_loss="yes").problems()))
+        self.assertEqual(SpotSessionConfig().problems(), [])
+        self.assertFalse(SpotSessionConfig().cut_on_link_loss)
+
+    def test_the_shipped_configuration_keeps_the_switch_off(self):
+        config = load_session_config(Path(__file__).resolve().parent.parent / "config" / "spot_session.json")
+        self.assertFalse(config.cut_on_link_loss)
+        self.assertEqual(config.max_link_loss_s, 10.0)

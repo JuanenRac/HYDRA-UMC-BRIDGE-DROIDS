@@ -130,6 +130,8 @@ class DroidMqttBridge:
             {
                 "session_ready": bool(session and session.ready),
                 "cut_reason": session.cut_reason if session is not None else "",
+                "link_lost": bool(session and session.link_lost),
+                "link_silent_s": round(session.link_silent_s, 1) if session is not None else 0.0,
                 "machine_state": machine.value if isinstance(machine, MachineState) else None,
                 "global_stop": self.global_stop.state if self.global_stop.enabled else "OFF",
                 "observed_at": int(self._clock() * 1000),

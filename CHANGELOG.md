@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A watchdog for the link to the robot:** the session counts how long the robot has gone without answering a state reading (`link_silent_s`, `link_lost` once it passes `max_link_loss_s`, 10 s by default) and the retained state reports both. A switch, `cut_on_link_loss` (off by default, in `config/spot_session.json`), makes the keep-alive cut the session when the link is lost, so the state reads SAFE_STOP; with it off the watchdog only reports. A reading that is not a mapping counts as silence and an answer resets the count. 8 more tests with the Spot emulator; not run against a real Spot.
 - **GraphNav and arm scenarios against the emulated robot:** `tests/spot_map_arm_emulator.py` adds a map with named waypoints and a gripper that follow the posture, the motor power and the emergency stop of the emulated Spot, and `tests/test_spot_map_arm_emulated.py` runs the walk to a waypoint (reached, stuck, lost), the cut of a walk by the emergency stop and by a global stop, and pick and place with a grasp that is refused, dropped or out of reach. Simulator evidence only; nothing here has run against a real Spot.
 - **A visible simulation bench:** the workflow "Simulation bench" runs the emulators and fakes of the bridge without hardware on every push, by hand and once a week; `docs/SIMULATION.md` says what it exercises and what it cannot show.
 
