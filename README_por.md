@@ -71,6 +71,8 @@ O **HYDRA-UMC-BRIDGE-DROIDS** permite a uma célula de robôs pedir a um droide 
 
 Partilha com todos os bridges o contrato de segurança do `HYDRA-UMC-SDK`: um trabalho só é aceite quando a porta partilhada `evaluate_job()` o permite, e essa porta falha fechada. Este bridge não tem transporte MQTT; o seu único transporte real é o emissor de comandos do Boston Dynamics Spot.
 
+> **Plataforma:** onde este README diz CM5, refere-se ao banco piloto que funciona hoje; a plataforma objetivo do HYDRA-UMC é uma NVIDIA Jetson Orin NX de 16 GB, um desenho que não foi construído nem testado.
+
 ## 🏛️ Arquitetura
 
 <p align="center">

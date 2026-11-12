@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **README: the platform statement:** a note says that where the README speaks of the CM5 it means the pilot bench that runs today, and that the target platform of HYDRA-UMC, an NVIDIA Jetson Orin NX 16 GB, is a design that has not been built or tested.
 - **The tests have a coverage floor of 92 %:** `tools/coverage_floor.json` holds the measured line and branch coverage of the bridge, rounded down (92.3 % measured in the CI environment), and `python tools/hydra_project_tool.py coverage` warns when it falls below it (a warning, not a CI check). Tooling only: no behaviour changes.
 - **The real-session factory and the keep-alive loop are tested without a Spot:** `tests/test_open_bosdyn_session.py` (14 tests) replaces the vendor library with a small fake and checks that `open_bosdyn_session` authenticates, synchronises the clock, registers the e-stop endpoint with the configured timeout, takes and gives back the lease, powers on and off with the timeouts and reads the robot state as plain data, that a missing library is a clear error, and that `run_forever` ticks a ready session, leaves a session that is not ready alone and always closes its dispatcher. Line coverage of the bridge goes from 86 % to 93 % (`spot_session.py` 75 % to 94 %, `mqtt_transport.py` 85 % to 96 %).
 
