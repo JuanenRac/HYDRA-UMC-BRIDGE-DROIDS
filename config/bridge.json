@@ -13,5 +13,12 @@
     "username": "",
     "password_file": ""
   },
-  "session_config": "config/spot_session.json"
+  "session_config": "config/spot_session.json",
+  "policy": {
+    "confirmation_required": true,
+    "confirmation_key_file": "",
+    "confirmation_max_ttl_s": 120.0,
+    "confirmation_max_clock_skew_s": 5.0,
+    "return_home_always": true
+  }
 }

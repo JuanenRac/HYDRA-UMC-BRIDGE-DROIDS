@@ -39,6 +39,7 @@ from hydra_umc_sdk.bridge_transport import MessageDispatcher as SharedMessageDis
 from hydra_umc_sdk.global_stop import STATE_READY, GlobalStopGuard, GlobalStopSettings
 
 from .coordinator import DroidCoordinator
+from .droid_policy import DroidPolicy
 from .remote_settings import SETTINGS_TOPIC, SettingsVerifier, parse_remote_settings, remote_settings_allowed
 from .spot_session import SpotSession
 
@@ -74,8 +75,11 @@ class DroidMqttBridge:
         global_stop: GlobalStopGuard | GlobalStopSettings | None = None,
         remote_settings: bool | None = None,
         settings_verifier: SettingsVerifier | None = None,
+        policy: DroidPolicy | None = None,
     ) -> None:
         self._coordinator = coordinator
+        # the signed human confirmation for the actions that move the droid; None keeps the entry as it was, the service always builds one from the configuration
+        self._policy = policy
         self._cell_state = cell_state
         self.session = session
         self._clock = clock
@@ -183,7 +187,17 @@ class DroidMqttBridge:
             return {"allowed": False, "reason": "malformed job payload: not an object"}
         session = self.session
         observed = session.observed_machine_state() if session is not None else None
+        verdict = None
+        if self._policy is not None:
+            verdict = self._policy.review(raw, self._coordinator.request_for(raw))
+            if not verdict.accepted:
+                # refused before the coordinator sees it: the idempotency key stays free, so the same job can be sent again with the confirmation
+                return {"allowed": False, "action": self._coordinator.request_for(raw) or "none", "reason": verdict.reason, "mode": "refused", "parameters": {}, "executed": False}
         dispatch = self._coordinator.handle_message(raw, self._cell_state(), observed)
+        if dispatch.accepted and self._policy is not None and verdict is not None:
+            used = self._policy.use(verdict)
+            if used is not None:
+                return {"allowed": False, "action": dispatch.action, "reason": used, "mode": "refused", "parameters": {}, "executed": False}
         return {
             "allowed": dispatch.accepted,
             "action": dispatch.action,
