@@ -233,5 +233,49 @@ class ServiceTests(unittest.TestCase):
                 build_bridge(load_service_config(path), SpotSessionConfig())
 
 
+class RemoteSwitchTests(unittest.TestCase):
+    """The switches of Server Admin only tighten what the host's own configuration says."""
+
+    @staticmethod
+    def bridge(policy, coordinator=None) -> DroidMqttBridge:
+        bridge = DroidMqttBridge(coordinator or DroidCoordinator(), lambda: CellState.READY, None, global_stop=GlobalStopGuard(GlobalStopSettings(enabled=False)), policy=policy)
+        bridge.remote_settings = True
+        return bridge
+
+    @staticmethod
+    def apply(bridge: DroidMqttBridge, settings: dict) -> dict:
+        from unittest import mock
+
+        with mock.patch("hydra_umc_bridge_droids.mqtt_transport.parse_remote_settings", return_value=settings):
+            return bridge.note_remote_settings(b"{}")
+
+    def test_the_known_switches_are_listed(self) -> None:
+        from hydra_umc_bridge_droids.remote_settings import SWITCHES
+
+        self.assertIn("confirmationRequired", SWITCHES)
+        self.assertIn("returnHomeAlways", SWITCHES)
+
+    def test_the_confirmation_can_be_required_but_not_waived(self) -> None:
+        loose = DroidPolicy(False, None)
+        bridge = self.bridge(loose)
+        self.apply(bridge, {"confirmationRequired": True})
+        self.assertTrue(loose.confirmation_required)
+        self.apply(bridge, {"confirmationRequired": False})
+        self.assertTrue(loose.confirmation_required)
+
+    def test_going_home_can_be_put_back_through_the_gate_but_not_taken_out_of_it(self) -> None:
+        coordinator = DroidCoordinator()
+        bridge = self.bridge(None, coordinator)
+        self.apply(bridge, {"returnHomeAlways": True})
+        self.assertTrue(coordinator.return_home_always)
+        self.apply(bridge, {"returnHomeAlways": False})
+        self.assertFalse(coordinator.return_home_always)
+        self.assertFalse(coordinator.dispatch(job(JobPhase.COMPLETE, params={}), CellState.READY, MachineState.RUNNING).accepted)
+        self.apply(bridge, {"returnHomeAlways": True})
+        self.assertFalse(coordinator.return_home_always)
+        # holding position stays available
+        self.assertTrue(coordinator.dispatch(job(JobPhase.ABORT, params={}), CellState.FAULT, MachineState.FAULT).accepted)
+
+
 if __name__ == "__main__":
     unittest.main()

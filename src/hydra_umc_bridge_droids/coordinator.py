@@ -121,7 +121,10 @@ class DroidCoordinator:
         self._intake = JobIntake(self._store)
         # the table of phases, the required parameters, the gate and the standalone requests are the shared coordinator of the SDK;
         # what this class keeps is what is specific to a droid: the meaning of its parameters
-        self._phases = PhaseCoordinator(
+        self._phases = self._make_phases(return_home_always)
+
+    def _make_phases(self, return_home_always: bool) -> PhaseCoordinator:
+        return PhaseCoordinator(
             self._phase_actions,
             required_parameters=self._REQUIRED_PARAMS,
             validators={
@@ -132,6 +135,14 @@ class DroidCoordinator:
             safe_actions=self.SAFE_ACTIONS if return_home_always else frozenset({self.HOLD_POSITION}),
             extra_actions=(self.STAND, self.SIT),
         )
+
+    @property
+    def return_home_always(self) -> bool:
+        return self.RETURN_HOME in self._phases.safe_actions
+
+    def restrict_return_home(self) -> None:
+        """Put going home back through the full gate (the stricter side). It cannot be undone from outside: there is no method to widen it again."""
+        self._phases = self._make_phases(False)
 
     def action_plan(self) -> DroidActionPlan:
         """Return the static action vocabulary without opening any real transport."""
