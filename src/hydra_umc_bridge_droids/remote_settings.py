@@ -5,7 +5,7 @@
 # =============================================================================
 """The switches that an administrator sets in Server Admin reach this bridge on one retained topic, signed.
 
-`hydra/bridges/droids/settings` carries `{"schema": 2, "settings": {"globalStop": bool, "cutOnGlobalStop": bool}, "seq": int, "issued_at_ms": int,
+`hydra/bridges/droids/settings` carries `{"schema": 2, "settings": {"globalStop": bool, "cutOnGlobalStop": bool, "confirmationRequired": bool, "returnHomeAlways": bool}, "seq": int, "issued_at_ms": int,
 "expires_in_ms": int, "signature": str}`. The signature is the HMAC-SHA256 of the shared signed-command format (`hydra_umc_sdk.signed_commands`) made with the key of the
 server for this bridge, which lives in the file named by `HYDRA_UMC_DROIDS_SETTINGS_KEY_FILE`. The bridge listens to the topic only when the host of the bridge allows it
 (`HYDRA_UMC_DROIDS_REMOTE_SETTINGS=1`, off by default) AND it has a usable key: without both the topic is not even subscribed and the bridge keeps what its own
@@ -30,7 +30,7 @@ REMOTE_ENVIRONMENT = "HYDRA_UMC_DROIDS_REMOTE_SETTINGS"
 SETTINGS_TOPIC = "hydra/bridges/droids/settings"
 MAX_SETTINGS_BYTES = 4096
 KEY_ENVIRONMENT = "HYDRA_UMC_DROIDS_SETTINGS_KEY_FILE"
-SWITCHES = ("globalStop", "cutOnGlobalStop")
+SWITCHES = ("globalStop", "cutOnGlobalStop", "confirmationRequired", "returnHomeAlways")
 SIGNED_SCHEMA = 2
 MAX_SKEW_MS = 5_000
 MAX_EXPIRES_MS = 300_000
