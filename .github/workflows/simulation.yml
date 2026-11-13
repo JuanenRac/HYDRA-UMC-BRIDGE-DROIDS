@@ -54,3 +54,5 @@ jobs:
           test_spot_map_arm_emulated
           test_coordinator
           test_mqtt_transport
+          test_session_fault_scenarios
+          test_human_confirmation_edges

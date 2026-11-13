@@ -25,6 +25,8 @@ workflow named "Simulation bench" does exactly this on a clean Linux runner on e
 | `tests/test_droid_policy.py` | going home forwarded whatever the machine reports, and the signed one-use human confirmation for walking, picking and placing (forged, expired, replayed, wrong action or job) |
 | `tests/test_coordinator.py` | the coordinator and its gate |
 | `tests/test_mqtt_transport.py` | the topic dispatch, QoS, idempotency and limits without a broker |
+| `tests/test_session_fault_scenarios.py` | a robot that loses its e-stop, lease or link, a sinking battery, a stale state and a seeded storm of faults: the session fails closed and never becomes ready again after a cut |
+| `tests/test_human_confirmation_edges.py` | the signed one-use confirmation: every missing or mistyped claim, the clock limits, racing threads and the bounded memory of used tokens |
 
 The broker scenarios start a real MQTT broker from a checkout of HYDRA-UMC-MQTT-BROKER (`HYDRA_UMC_TEST_BROKER_DIR`); the simulation job does not install it, so
 those cases skip themselves there and run in the normal test run on a machine that has the broker.
