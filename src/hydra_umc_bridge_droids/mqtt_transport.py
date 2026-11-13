@@ -205,6 +205,7 @@ class DroidMqttBridge:
             "mode": dispatch.mode,
             "parameters": dict(dispatch.parameters),
             "executed": False,
+            "code": dispatch.code,
         }
 
 
