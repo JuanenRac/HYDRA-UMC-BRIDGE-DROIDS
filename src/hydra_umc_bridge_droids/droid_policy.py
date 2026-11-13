@@ -33,7 +33,7 @@ class PolicyVerdict:
 
 class DroidPolicy:
     def __init__(self, confirmation_required: bool = True, verifier: ConfirmationVerifier | None = None, actions: frozenset[str] = CONFIRMED_ACTIONS) -> None:
-        self.confirmation_required = confirmation_required
+        self.confirmation_required = confirmation_required  # remote settings may switch it ON, never off
         self.verifier = verifier
         self.actions = frozenset(actions)
 

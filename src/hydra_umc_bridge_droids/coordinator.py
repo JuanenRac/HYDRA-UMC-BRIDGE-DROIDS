@@ -25,6 +25,9 @@ from hydra_umc_sdk.job_intake import IdempotencyStore, JobIntake
 from hydra_umc_sdk.phase_coordinator import PhaseCoordinator
 
 
+RETURN_HOME_FAULT = "RETURN_HOME_ROBOT_FAULT"
+
+
 @dataclass(frozen=True)
 class DroidDispatch:
     """The decision for one action, with the validated parameters it was taken on.
@@ -39,6 +42,8 @@ class DroidDispatch:
     reason: str
     mode: str = "plan-only"
     parameters: Mapping[str, float | str] = field(default_factory=dict)
+    # a stable code for a refusal that a client can act on (empty when there is none)
+    code: str = ""
 
 
 @dataclass(frozen=True)
@@ -116,7 +121,10 @@ class DroidCoordinator:
         self._intake = JobIntake(self._store)
         # the table of phases, the required parameters, the gate and the standalone requests are the shared coordinator of the SDK;
         # what this class keeps is what is specific to a droid: the meaning of its parameters
-        self._phases = PhaseCoordinator(
+        self._phases = self._make_phases(return_home_always)
+
+    def _make_phases(self, return_home_always: bool) -> PhaseCoordinator:
+        return PhaseCoordinator(
             self._phase_actions,
             required_parameters=self._REQUIRED_PARAMS,
             validators={
@@ -127,6 +135,14 @@ class DroidCoordinator:
             safe_actions=self.SAFE_ACTIONS if return_home_always else frozenset({self.HOLD_POSITION}),
             extra_actions=(self.STAND, self.SIT),
         )
+
+    @property
+    def return_home_always(self) -> bool:
+        return self.RETURN_HOME in self._phases.safe_actions
+
+    def restrict_return_home(self) -> None:
+        """Put going home back through the full gate (the stricter side). It cannot be undone from outside: there is no method to widen it again."""
+        self._phases = self._make_phases(False)
 
     def action_plan(self) -> DroidActionPlan:
         """Return the static action vocabulary without opening any real transport."""
@@ -158,6 +174,9 @@ class DroidCoordinator:
     def dispatch(self, job: BridgeJob, cell_state: CellState, observed_machine_state: MachineState | None = None) -> DroidDispatch:
         # `observed_machine_state` is what the droid reported about itself; the claim written in the job is not a reading, so without it the SDK gate refuses every productive job (fail-closed)
         decision = self._phases.decide(job, cell_state, observed_machine_state)
+        if decision.action == self.RETURN_HOME and observed_machine_state is MachineState.FAULT:
+            # going home is a de-escalation that is always forwarded, with one floor: a robot that reports FAULT is not told to walk
+            return DroidDispatch(False, self.RETURN_HOME, "RETURN_HOME refused: the robot reports FAULT; hold position or clear the fault first", code=RETURN_HOME_FAULT)
         if decision.action == "none":
             return DroidDispatch(False, "none", "job phase has no mapped droid action trigger")
         return DroidDispatch(decision.accepted, decision.action, decision.reason, parameters=dict(decision.parameters))  # type: ignore[arg-type]
