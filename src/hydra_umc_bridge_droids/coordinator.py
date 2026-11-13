@@ -104,7 +104,12 @@ class DroidCoordinator:
         JobPhase.ABORT: HOLD_POSITION,
     }
 
-    def __init__(self, store: IdempotencyStore | None = None) -> None:
+    # The actions that reduce risk and are therefore forwarded whatever the state of the cell or of the machine says (the gate is for starting work): holding in place and
+    # going home. A droid that has just placed an object still reports RUNNING, so without this the way home would stay blocked until it reported IDLE, which is the same
+    # rule that BRIDGE-UAV applies to return to launch, land and disarm. Going home is still refused while the global stop of the server is on (see mqtt_transport.py).
+    SAFE_ACTIONS = frozenset({HOLD_POSITION, RETURN_HOME})
+
+    def __init__(self, store: IdempotencyStore | None = None, *, return_home_always: bool = True) -> None:
         # what arrives as a message (handle_message) goes through the shared intake: retained and malformed messages stop there and a repeated idempotency key is not run twice.
         # Without a file-backed store the keys live in memory and are lost at a restart; pass an IdempotencyStore(path) to keep them.
         self._store = store if store is not None else IdempotencyStore()
@@ -119,6 +124,7 @@ class DroidCoordinator:
                 self.PLACE_OBJECT: lambda parameters: self._coordinates(self.PLACE_OBJECT, parameters),
                 self.PICK_OBJECT: self._object,
             },
+            safe_actions=self.SAFE_ACTIONS if return_home_always else frozenset({self.HOLD_POSITION}),
             extra_actions=(self.STAND, self.SIT),
         )
 
@@ -159,7 +165,7 @@ class DroidCoordinator:
     def handle_message(self, payload: Mapping[str, object], cell_state: CellState, observed_machine_state: MachineState | None = None, *, retained: bool = False) -> DroidDispatch:
         """The entry point for a job that arrived as a message: retained and malformed ones are refused, a repeat of an idempotency key is not run a second time.
 
-        The ABORT phase (hold position) is the exception: it is forwarded again on a repeat, because repeating it is harmless and a first attempt that died half way
+        The phases whose action only reduces risk (ABORT holds position, COMPLETE goes home) are the exception: they are forwarded again on a repeat, because repeating it is harmless and a first attempt that died half way
         must not leave the droid walking. The answer given for a key is stored with it.
         """
 
@@ -168,12 +174,23 @@ class DroidCoordinator:
             return DroidDispatch(False, "none", intake.reason)
         job = intake.job
         if not intake.accepted:
-            if job.phase is JobPhase.ABORT:
+            if self._phases.action_for(job.phase) in self._phases.safe_actions:
                 return self.dispatch(job, cell_state, observed_machine_state)
             return DroidDispatch(False, "none", intake.reason)
         result = self.dispatch(job, cell_state, observed_machine_state)
         self._store.remember(job.idempotency_key, f"{'accepted' if result.accepted else 'refused'}: {result.action}: {result.reason}")
         return result
+
+    def request_for(self, payload: Mapping[str, object]) -> str | None:
+        """The name of the action a job in `payload` maps onto (None when the phase cannot be read or has none)."""
+
+        phase = payload.get("phase")
+        if not isinstance(phase, str):
+            return None
+        try:
+            return self._phases.action_for(JobPhase(phase.strip().upper()))
+        except ValueError:
+            return None
 
     def sit_request(self) -> DroidDispatch:
         """Real, standalone SIT request - deliberately outside the

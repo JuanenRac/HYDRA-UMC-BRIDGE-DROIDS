@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here.
 
+## [Unreleased]
+
+- **Going home is a de-escalation that is always forwarded:** a droid that has just placed an object still reports `RUNNING`, so the way home stayed blocked until it reported `IDLE`. `RETURN_HOME` (with `HOLD_POSITION`) now goes through whatever the cell and the machine report, the same rule BRIDGE-UAV applies to return to launch, land and disarm, and a repeat of that job is forwarded again. It is still refused while the global stop of the server is on. `policy.return_home_always` in `config/bridge.json` (true by default) puts it back through the gate.
+- **A human confirmation signed by the server, valid once, is required for the jobs that move the droid, on by default:** a job that walks, picks or places carries `operator_confirmation`, a short HS256 token for that action and job (`policy` in `config/bridge.json`, key read from a file, lifetime limit, replay refused); a job refused for another reason does not use the token up and keeps its idempotency key free. Holding position and going home never need it. Pure standard library.
+- 19 new tests (simulator evidence only; no droid was involved).
+
 ## [0.1.7] - Link watchdog, GraphNav scenarios and a coverage floor
 
 - **README: the platform statement:** a note says that where the README speaks of the CM5 it means the pilot bench that runs today, and that the target platform of HYDRA-UMC, an NVIDIA Jetson Orin NX 16 GB, is a design that has not been built or tested.

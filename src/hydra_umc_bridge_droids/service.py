@@ -25,6 +25,8 @@ from pathlib import Path
 from hydra_umc_sdk.bridge_contract import CellState
 
 from .coordinator import DroidCoordinator
+from .droid_policy import DroidPolicy
+from .human_confirmation import ConfirmationVerifier, load_key
 from .mqtt_transport import DroidMqttBridge, run_forever
 from .spot_session import SpotSessionConfig, load_session_config, open_bosdyn_session
 
@@ -57,10 +59,22 @@ class SpotConfig:
 
 
 @dataclass(frozen=True)
+class PolicyConfig:
+    # a job that moves the droid must carry a confirmation of an operator signed by the server, valid once; on by default (see droid_policy.py)
+    confirmation_required: bool = True
+    confirmation_key_file: str = ""
+    confirmation_max_ttl_s: float = 120.0
+    confirmation_max_clock_skew_s: float = 5.0
+    # going home is forwarded whatever the machine state says (like return to launch in BRIDGE-UAV); false makes it go through the gate like any other action
+    return_home_always: bool = True
+
+
+@dataclass(frozen=True)
 class ServiceConfig:
     mqtt: MqttConfig = field(default_factory=MqttConfig)
     spot: SpotConfig = field(default_factory=SpotConfig)
     session_config: str = DEFAULT_SESSION_PATH
+    policy: PolicyConfig = field(default_factory=PolicyConfig)
 
 
 def _section(raw: object, kind: type, name: str):
@@ -93,17 +107,20 @@ def load_service_config(path: str | Path | None) -> ServiceConfig:
         raise ConfigError(f"cannot read {path}: {error}") from error
     if not isinstance(raw, dict):
         raise ConfigError("the configuration must be a JSON object")
-    unknown = sorted(set(raw) - {"mqtt", "spot", "session_config"})
+    unknown = sorted(set(raw) - {"mqtt", "spot", "session_config", "policy"})
     if unknown:
         raise ConfigError(f"unknown keys: {', '.join(unknown)}")
     session_config = raw.get("session_config", DEFAULT_SESSION_PATH)
     if not isinstance(session_config, str):
         raise ConfigError("'session_config' must be a string")
-    config = ServiceConfig(_section(raw.get("mqtt"), MqttConfig, "mqtt"), _section(raw.get("spot"), SpotConfig, "spot"), session_config)
+    config = ServiceConfig(_section(raw.get("mqtt"), MqttConfig, "mqtt"), _section(raw.get("spot"), SpotConfig, "spot"), session_config, _section(raw.get("policy"), PolicyConfig, "policy"))
     if not config.mqtt.host or not 0 < config.mqtt.port < 65536:
         raise ConfigError("'mqtt.host' and 'mqtt.port' must name a broker")
     if config.mqtt.max_connect_attempts < 1 or config.mqtt.connect_retry_delay_seconds < 0:
         raise ConfigError("'mqtt' connection retries must be at least 1 attempt and a delay of 0 or more")
+    policy = config.policy
+    if not (0 < policy.confirmation_max_ttl_s <= 3600 and 0 < policy.confirmation_max_clock_skew_s <= 60):
+        raise ConfigError("'policy' confirmation lifetime must be above 0 and at most 3600 s, and the clock skew above 0 and at most 60 s")
     if config.spot.host and not (config.spot.username and config.spot.password_file):
         raise ConfigError("'spot.host' needs 'spot.username' and 'spot.password_file'")
     return config
@@ -134,7 +151,11 @@ def build_bridge(config: ServiceConfig, session_config: SpotSessionConfig) -> Dr
         # without a robot the bridge only gates and the job carries its own machine state; with one, a cut session means the cell is faulted
         return CellState.READY if session is None or session.ready else CellState.FAULT
 
-    return DroidMqttBridge(DroidCoordinator(), cell_state, session)
+    policy = config.policy
+    verifier = None
+    if policy.confirmation_required and policy.confirmation_key_file.strip():
+        verifier = ConfirmationVerifier(load_key(policy.confirmation_key_file), max_ttl_s=policy.confirmation_max_ttl_s, max_clock_skew_s=policy.confirmation_max_clock_skew_s)
+    return DroidMqttBridge(DroidCoordinator(return_home_always=policy.return_home_always), cell_state, session, policy=DroidPolicy(policy.confirmation_required, verifier))
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -176,4 +197,4 @@ def main(argv: Sequence[str] | None = None) -> int:
     return 1
 
 
-__all__ = ["ConfigError", "MqttConfig", "ServiceConfig", "SpotConfig", "build_bridge", "load_service_config", "main"]
+__all__ = ["ConfigError", "MqttConfig", "PolicyConfig", "ServiceConfig", "SpotConfig", "build_bridge", "load_service_config", "main"]
