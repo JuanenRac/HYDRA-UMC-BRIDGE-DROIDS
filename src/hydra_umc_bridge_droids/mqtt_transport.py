@@ -107,6 +107,12 @@ class DroidMqttBridge:
         session = self.session
         if "cutOnGlobalStop" in found and session is not None:
             session.config = dataclasses.replace(session.config, cut_on_global_stop=found["cutOnGlobalStop"])
+        # the policy switches only TIGHTEN what the host's own file says: the confirmation can be required but never waived, and going home can be put back through the gate but
+        # never taken out of it
+        if found.get("confirmationRequired") is True and self._policy is not None:
+            self._policy.confirmation_required = True
+        if found.get("returnHomeAlways") is False:
+            self._coordinator.restrict_return_home()
         if "globalStop" in found:
             settings = self.global_stop.settings
             self.global_stop.settings = dataclasses.replace(settings, enabled=found["globalStop"])
