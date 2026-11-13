@@ -48,6 +48,7 @@ from typing import Callable, Protocol
 from hydra_umc_sdk.bridge_contract import CellState, MachineState
 
 from .coordinator import DroidCoordinator, DroidDispatch
+from .platform_profiles import ForbiddenZone
 
 
 class SpotCommandBuilder(Protocol):
@@ -57,7 +58,12 @@ class SpotCommandBuilder(Protocol):
     def synchro_sit_command(self) -> object: ...
     def stop_command(self) -> object: ...
     def synchro_trajectory_command_in_body_frame(
-        self, goal_x_rt_body: float, goal_y_rt_body: float, goal_heading_rt_body: float, frame_tree_snapshot: object
+        self,
+        goal_x_rt_body: float,
+        goal_y_rt_body: float,
+        goal_heading_rt_body: float,
+        frame_tree_snapshot: object,
+        params: object | None = None,
     ) -> object: ...
 
 
@@ -97,6 +103,25 @@ def open_bosdyn_robot_command(hostname: str, username: str, password: str) -> tu
 
 # bosdyn's RobotCommandResponse.Status.STATUS_OK
 _STATUS_OK = 1
+
+
+def bosdyn_speed_params(max_speed_mps: float, max_angular_rps: float = 1.0) -> object:
+    """The bosdyn-client mobility parameters that cap the walking speed (linear in x and y, and the turning rate).
+
+    The one place besides `open_bosdyn_robot_command()` that imports bosdyn-client. Pass it to `walk_to(speed_params=...)`. It follows the
+    documented `SE2VelocityLimit` shape of the Spot SDK and has not run against a real Spot.
+    """
+
+    try:
+        from bosdyn.api import geometry_pb2  # type: ignore[import-untyped]
+        from bosdyn.api.spot import spot_command_pb2  # type: ignore[import-untyped]
+    except ImportError as error:
+        raise RuntimeError("bosdyn-client is not installed - it is needed to cap the walking speed of a real Spot") from error
+    limit = geometry_pb2.SE2VelocityLimit(
+        max_vel=geometry_pb2.SE2Velocity(linear=geometry_pb2.Vec2(x=max_speed_mps, y=max_speed_mps), angular=max_angular_rps),
+        min_vel=geometry_pb2.SE2Velocity(linear=geometry_pb2.Vec2(x=-max_speed_mps, y=-max_speed_mps), angular=-max_angular_rps),
+    )
+    return spot_command_pb2.MobilityParams(vel_limit=limit)
 
 
 def _is_finite_number(value: object) -> bool:
@@ -159,6 +184,9 @@ class SpotDroidControl:
         command_timeout_s: float,
         goal_heading: float = 0.0,
         max_distance_m: float | None = None,
+        max_speed_mps: float | None = None,
+        speed_params: Callable[[float], object] | None = None,
+        forbidden_zones: tuple[ForbiddenZone, ...] = (),
         clock: Callable[[], float] = time.time,
     ) -> SpotSendResult:
         """Send the walk a WALK_TO dispatch was accepted for.
@@ -167,7 +195,10 @@ class SpotDroidControl:
         value passed next to it, and the dispatch must be a WALK_TO. The command
         expires `command_timeout_s` seconds from now (the robot drops it then),
         and, when `max_distance_m` is given (a profile's `max_walk_distance_m`),
-        a goal farther than that is refused.
+        a goal farther than that is refused. A goal inside a forbidden zone, or a straight walk that crosses one, is refused too
+        (`forbidden_zones`, a profile's). When `max_speed_mps` is given the command carries `speed_params(max_speed_mps)`; a speed limit
+        that cannot be applied (no `speed_params`) refuses the walk instead of sending it unlimited.
+        (`profile.walk_limits()` gives the three keyword arguments of a profile.)
         """
 
         # A rejected dispatch (the shared SDK gate already said no) must
@@ -189,7 +220,20 @@ class SpotDroidControl:
                 return SpotSendResult(False, f"max_distance_m must be a finite, positive number, got {max_distance_m!r}")
             if math.hypot(goal_x, goal_y) > max_distance_m:  # type: ignore[arg-type]
                 return SpotSendResult(False, f"the goal is {math.hypot(goal_x, goal_y):.1f} m away, beyond the {max_distance_m:g} m limit")  # type: ignore[arg-type]
-        command = builder.synchro_trajectory_command_in_body_frame(goal_x, goal_y, goal_heading, frame_tree_snapshot)  # type: ignore[arg-type]
+        for zone in forbidden_zones:
+            if zone.blocks(goal_x, goal_y):  # type: ignore[arg-type]
+                return SpotSendResult(False, f"the walk ends in or crosses the forbidden zone {zone.name!r}")
+        params: object | None = None
+        if max_speed_mps is not None:
+            if not _is_finite_number(max_speed_mps) or max_speed_mps <= 0:
+                return SpotSendResult(False, f"max_speed_mps must be a finite, positive number, got {max_speed_mps!r}")
+            if speed_params is None:
+                return SpotSendResult(False, "the profile limits the speed but the transport has no way to apply the limit")
+            params = speed_params(max_speed_mps)
+        if params is None:
+            command = builder.synchro_trajectory_command_in_body_frame(goal_x, goal_y, goal_heading, frame_tree_snapshot)  # type: ignore[arg-type]
+        else:
+            command = builder.synchro_trajectory_command_in_body_frame(goal_x, goal_y, goal_heading, frame_tree_snapshot, params=params)  # type: ignore[arg-type,call-arg]
         return self._send(command, sink, end_time_secs=clock() + command_timeout_s)
 
     @staticmethod
