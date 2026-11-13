@@ -126,12 +126,13 @@ class SpotCommandBuilderEmulator:
 
     @staticmethod
     def synchro_trajectory_command_in_body_frame(
-        goal_x_rt_body: float, goal_y_rt_body: float, goal_heading_rt_body: float, frame_tree_snapshot: object
+        goal_x_rt_body: float, goal_y_rt_body: float, goal_heading_rt_body: float, frame_tree_snapshot: object, params: object | None = None
     ) -> dict:
         return {
             "synchronized_command": {
                 "mobility_command": {
                     "se2_trajectory_request": {
+                        "params": params,
                         "se2_frame_name": "body",
                         "trajectory": {
                             "points": [
