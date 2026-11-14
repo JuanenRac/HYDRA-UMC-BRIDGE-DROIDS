@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import math
+import os
 from typing import Mapping
 
 from hydra_umc_sdk.bridge_contract import BridgeJob, CellState, JobPhase, MachineState
@@ -26,6 +27,9 @@ from hydra_umc_sdk.phase_coordinator import PhaseCoordinator
 
 
 RETURN_HOME_FAULT = "RETURN_HOME_ROBOT_FAULT"
+IN_DOUBT_CONSULT_ENVIRONMENT = "HYDRA_UMC_DROIDS_IN_DOUBT_CONSULT"
+# what is stored for a job whose first attempt left no answer and that was answered with a reading of the droid
+IN_DOUBT_PREFIX = "in doubt: none: "
 
 
 @dataclass(frozen=True)
@@ -114,11 +118,14 @@ class DroidCoordinator:
     # rule that BRIDGE-UAV applies to return to launch, land and disarm. Going home is still refused while the global stop of the server is on (see mqtt_transport.py).
     SAFE_ACTIONS = frozenset({HOLD_POSITION, RETURN_HOME})
 
-    def __init__(self, store: IdempotencyStore | None = None, *, return_home_always: bool = True) -> None:
+    def __init__(self, store: IdempotencyStore | None = None, *, return_home_always: bool = True, in_doubt_consult: bool | None = None) -> None:
         # what arrives as a message (handle_message) goes through the shared intake: retained and malformed messages stop there and a repeated idempotency key is not run twice.
         # Without a file-backed store the keys live in memory and are lost at a restart; pass an IdempotencyStore(path) to keep them.
         self._store = store if store is not None else IdempotencyStore()
-        self._intake = JobIntake(self._store)
+        # a repeated key whose first attempt left no answer is refused, or (HYDRA_UMC_DROIDS_IN_DOUBT_CONSULT=1, off by default) answered with what the droid reports now; it is never run again
+        consult = in_doubt_consult if in_doubt_consult is not None else os.environ.get(IN_DOUBT_CONSULT_ENVIRONMENT, "").strip() == "1"
+        self._observed_now: MachineState | None = None
+        self._intake = JobIntake(self._store, in_doubt_policy="consult" if consult else "refuse", status_query=self._report_for_job_in_doubt)
         # the table of phases, the required parameters, the gate and the standalone requests are the shared coordinator of the SDK;
         # what this class keeps is what is specific to a droid: the meaning of its parameters
         self._phases = self._make_phases(return_home_always)
@@ -195,10 +202,33 @@ class DroidCoordinator:
         if not intake.accepted:
             if self._phases.action_for(job.phase) in self._phases.safe_actions:
                 return self.dispatch(job, cell_state, observed_machine_state)
+            if intake.in_doubt:
+                self._observed_now = observed_machine_state
+                try:
+                    answer = self._intake.resolve_in_doubt(job)
+                finally:
+                    self._observed_now = None
+                if answer is not None:
+                    return DroidDispatch(False, "none", answer.removeprefix(IN_DOUBT_PREFIX))
+            else:
+                stored = self._intake.recall(job.idempotency_key)
+                if stored is not None and stored.startswith(IN_DOUBT_PREFIX):
+                    return DroidDispatch(False, "none", stored.removeprefix(IN_DOUBT_PREFIX))
             return DroidDispatch(False, "none", intake.reason)
         result = self.dispatch(job, cell_state, observed_machine_state)
         self._store.remember(job.idempotency_key, f"{'accepted' if result.accepted else 'refused'}: {result.action}: {result.reason}")
         return result
+
+    def _report_for_job_in_doubt(self, job: BridgeJob) -> str | None:
+        """What the droid says now about a job whose first attempt left no answer (the `status_query` of the shared intake).
+
+        It is a reading, not a decision: the job is not evaluated and nothing is sent. The reading is the state the droid reported with the repeat; without one there is no answer and the repeat stays refused.
+        """
+
+        state = self._observed_now
+        if state is None:
+            return None
+        return f"{IN_DOUBT_PREFIX}the first attempt of this job left no answer; the droid now reports {state.value} and the job is not run again"
 
     def request_for(self, payload: Mapping[str, object]) -> str | None:
         """The name of the action a job in `payload` maps onto (None when the phase cannot be read or has none)."""

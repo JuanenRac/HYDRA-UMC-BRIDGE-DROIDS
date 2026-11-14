@@ -41,6 +41,10 @@ Keep a new script in the repository root only when it is an operator entry point
 
 The session counts how long the robot has gone without answering a state reading. `link_silent_s` and `link_lost` (true after `max_link_loss_s`, 10 s by default) travel in the retained `state`. The switch `cut_on_link_loss` in `config/spot_session.json` is off by default: with it off the watchdog only reports; with it on the keep-alive cuts the session once the link is lost.
 
+## A job whose first attempt left no answer
+
+A job key is handled once. When a key was claimed but no answer was stored (the bridge stopped between the claim and the answer), the repeat of that key is refused with a reason that says the key was already handled and no answer was stored for it, and the action is never sent again. With `HYDRA_UMC_DROIDS_IN_DOUBT_CONSULT=1` (default off) the coordinator instead answers the repeat with the state the droid reported with that repeat (`observed_machine_state`, which the MQTT bridge reads from the Spot session): the answer names it, the reading is stored under the key, and a further repeat gets the same answer. It is a reading, not a decision: the gate is not asked again, nothing is sent and the repeat is never accepted. A repeat that comes with no reported state stays refused. Actions that only reduce risk (hold position, go home) are still forwarded again, with or without the switch. Exercised with a scripted state only.
+
 ## Hardware acceptance gate
 
 Before deploying an adapter: select the real transport (Wi-Fi/BT/4G-5G) and its authentication, document the droid's own command interface and every action trigger's real parameter mapping, bind authenticated droid identity, verify stale/disconnected-state behavior, test `HOLD_POSITION` independently as a real safe fallback (the stop command is implemented; the E-Stop keep-alive it should sit beside is not), and perform bench validation before any occupied-space test. The droid's own onboard controller remains responsible for balance and motion safety.
