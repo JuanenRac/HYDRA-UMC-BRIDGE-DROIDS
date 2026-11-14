@@ -138,7 +138,13 @@ flowchart LR
 
 ## ⚙️ 配置
 
-没有环境变量，也没有配置文件：Spot 的主机、用户名和密码是 `open_bosdyn_robot_command()` 的参数，平台配置（`MOBILE_ONLY` 或 `MOBILE_MANIPULATOR`）在代码中选择。真实安装中如何保存凭据尚未确定。
+Spot 的主机、用户名和密码是 `open_bosdyn_robot_command()` 的参数，平台配置（`MOBILE_ONLY` 或 `MOBILE_MANIPULATOR`）在代码中选择。真实安装中如何保存凭据尚未确定。
+
+作业入口的开关从环境变量读取（默认关闭）：
+
+| 变量 | 默认值 | 设置内容 |
+|---|---|---|
+| `HYDRA_UMC_DROIDS_IN_DOUBT_CONSULT` | 关闭 | `1` 时，对首次尝试未留下应答的重复任务键，不再直接拒绝，而是用机器人上报的状态作答；不会再次执行任何操作 |
 
 ## 🚀 快速开始
 

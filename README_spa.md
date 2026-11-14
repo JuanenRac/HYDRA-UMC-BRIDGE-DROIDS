@@ -138,7 +138,13 @@ No hay topics MQTT ni rutas HTTP: este bridge es una biblioteca.
 
 ## ⚙️ Configuración
 
-No hay variables de entorno ni fichero de configuración: el host, el usuario y la contraseña del Spot son argumentos de `open_bosdyn_robot_command()`, y el perfil de plataforma (`MOBILE_ONLY` o `MOBILE_MANIPULATOR`) se elige en el código. Cómo se guardan las credenciales en una instalación real todavía no está decidido.
+El host, el usuario y la contraseña del Spot son argumentos de `open_bosdyn_robot_command()`, y el perfil de plataforma (`MOBILE_ONLY` o `MOBILE_MANIPULATOR`) se elige en el código. Cómo se guardan las credenciales en una instalación real todavía no está decidido.
+
+El interruptor de la entrada de trabajos se lee del entorno (desactivado por defecto):
+
+| Variable | Por defecto | Qué fija |
+|---|---|---|
+| `HYDRA_UMC_DROIDS_IN_DOUBT_CONSULT` | desactivado | `1` responde a una clave de trabajo repetida cuyo primer intento no dejó respuesta con el estado que informa el droide, en lugar de rechazarla; no se ejecuta nada de nuevo |
 
 ## 🚀 Inicio rápido
 
