@@ -4,6 +4,9 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+
+## [0.1.8]
+
 - **The retained state is published at every cut, not only when a status or an e-stop command is handled:** the session tells the bridge the reason of each cut (an operator request, the global stop, a lost lease or link) and the bridge publishes `state` on the broker at that moment; the keep-alive thread also publishes it when the session, the reason of the cut or the link changed since the last publication (and the first time after a connect), and a publication that fails is tried again at the next tick. The safety zones service reads this topic to hold new starts of the cell while a droid is cut. Tested with a list as the publisher (a cut from outside, the global stop, the command over MQTT, no connection, a publisher that fails, a hook that raises); not tried against a broker or a robot.
 
 - **The SDK pin and the shared tools are up to date:** the SDK dependency names the newest release tag, and the shared tools are the canonical copies again.
@@ -17,6 +20,8 @@ All notable changes to this project are documented here.
 - **Going home is a de-escalation that is always forwarded:** a droid that has just placed an object still reports `RUNNING`, so the way home stayed blocked until it reported `IDLE`. `RETURN_HOME` (with `HOLD_POSITION`) now goes through whatever the cell and the machine report, the same rule BRIDGE-UAV applies to return to launch, land and disarm, and a repeat of that job is forwarded again. It is still refused while the global stop of the server is on. `policy.return_home_always` in `config/bridge.json` (true by default) puts it back through the gate.
 - **A human confirmation signed by the server, valid once, is required for the jobs that move the droid, on by default:** a job that walks, picks or places carries `operator_confirmation`, a short HS256 token for that action and job (`policy` in `config/bridge.json`, key read from a file, lifetime limit, replay refused); a job refused for another reason does not use the token up and keeps its idempotency key free. Holding position and going home never need it. Pure standard library.
 - 19 new tests (simulator evidence only; no droid was involved).
+
+- Successful incremental build: synchronized package metadata and `hydra-umc.project.json`.
 
 ## [0.1.7] - Link watchdog, GraphNav scenarios and a coverage floor
 
