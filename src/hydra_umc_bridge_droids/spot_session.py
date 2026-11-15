@@ -139,6 +139,8 @@ class SpotSession:
     state_reader: SpotStateReader
     config: SpotSessionConfig = field(default_factory=SpotSessionConfig)
     clock: Callable[[], float] = time.time
+    # told the reason of every cut, after the e-stop endpoint stopped being checked in (the transport publishes the state with it); a hook that fails changes nothing
+    on_cut: Callable[[str], None] | None = None
     ready: bool = field(default=False, init=False)
     cut_reason: str = field(default="", init=False)
     _last_state: Mapping[str, object] | None = field(default=None, init=False, repr=False)
@@ -308,6 +310,11 @@ class SpotSession:
             self.estop.cut()
         except Exception:
             pass  # the e-stop endpoint stops being checked in; the robot's own timeout cuts it
+        if self.on_cut is not None:
+            try:
+                self.on_cut(reason)
+            except Exception:
+                pass  # telling others is best effort and never undoes the cut
 
 
 def open_bosdyn_session(hostname: str, username: str, password: str, config: SpotSessionConfig | None = None) -> SpotSession:

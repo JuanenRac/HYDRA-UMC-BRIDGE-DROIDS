@@ -83,6 +83,11 @@ class DroidMqttBridge:
         self._cell_state = cell_state
         self.session = session
         self._clock = clock
+        # how the state reaches the broker (set by run_forever once it is connected); None while there is no connection
+        self.publisher: Callable[[str, str], None] | None = None
+        self._published_key: tuple[bool, str, bool] | None = None
+        if session is not None:
+            session.on_cut = self._session_was_cut
         if isinstance(global_stop, GlobalStopGuard):
             self.global_stop = global_stop
         elif global_stop is not None:
@@ -147,6 +152,33 @@ class DroidMqttBridge:
                 "observed_at": int(self._clock() * 1000),
             }
         )
+
+    def _state_key(self) -> tuple[bool, str, bool]:
+        session = self.session
+        return (bool(session and session.ready), session.cut_reason if session is not None else "", bool(session and session.link_lost))
+
+    def publish_state(self) -> bool:
+        """Publish the retained state now (the cell that reads it learns of a cut at once, not at the next status request). False when there is no connection or the publish failed; it is tried again."""
+        publisher = self.publisher
+        if publisher is None:
+            return False
+        key = self._state_key()
+        try:
+            publisher(STATE_TOPIC, self.state_payload())
+        except Exception:  # noqa: BLE001 - the broker may be gone; the next tick tries again
+            _LOG.warning("could not publish the state of the droid session")
+            return False
+        self._published_key = key
+        return True
+
+    def publish_state_if_changed(self) -> bool:
+        """Publish the state when what the cell reads (ready, why it was cut, link lost) differs from what was published last. True when it was published."""
+        if self._state_key() == self._published_key:
+            return False
+        return self.publish_state()
+
+    def _session_was_cut(self, reason: str) -> None:  # noqa: ARG002
+        self.publish_state()
 
     # -- routing ------------------------------------------------------------
     def handle_message(self, topic: str, payload: bytes, *, retained: bool = False) -> list[MqttPublish]:
@@ -273,6 +305,7 @@ def run_forever(
             while not stop.wait(interval):
                 if session.ready:
                     session.tick()
+                bridge.publish_state_if_changed()  # a link lost without a cut, or a state not yet published after a reconnect
 
         threading.Thread(target=keep_alive, name="droids-keep-alive", daemon=True).start()
     try:
@@ -289,8 +322,10 @@ def run_forever(
             on_connected=_on_connected(bridge),
             **hardening.connect_kwargs(),
         )
+        bridge.publisher = lambda topic, payload: client.publish(topic, payload, qos=1, retain=True)  # type: ignore[attr-defined]
         client.loop_forever()  # type: ignore[attr-defined]
     finally:
+        bridge.publisher = None
         stop.set()
         dispatcher.close(wait=False)
 
