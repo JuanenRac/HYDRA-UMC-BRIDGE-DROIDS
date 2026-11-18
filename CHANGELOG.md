@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The status table of the README shows the exact test count as confirmed:** the table is regenerated from the recorded data, so the Tests line is green for a count that was collected and that a workflow runs. The README and its seven translations are regenerated.
+
 - **The README names the session settings of the observed state:** the configuration table lists `cut_on_broker_loss_s`, `moving_speed_mps`, `unknown_motion_is_idle` and the fixed frame of a forbidden zone, the test table lists the fixture and walk-limit tests, and the test counts are current. The README and its seven translations are regenerated.
 
 - **A forbidden zone can be given in a fixed frame:** `ForbiddenZone` takes `frame` (`body` by default, as before, or `odom`); a walk is then judged from the pose of the robot (`pose_in_odom` of `walk_to`), so the same zone gives the same answer whatever way the robot faces, and a walk with such a zone and no pose is refused.
