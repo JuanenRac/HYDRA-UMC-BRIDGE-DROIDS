@@ -41,6 +41,10 @@ Keep a new script in the repository root only when it is an operator entry point
 
 The session counts how long the robot has gone without answering a state reading. `link_silent_s` and `link_lost` (true after `max_link_loss_s`, 10 s by default) travel in the retained `state`. The switch `cut_on_link_loss` in `config/spot_session.json` is off by default: with it off the watchdog only reports; with it on the keep-alive cuts the session once the link is lost.
 
+## Cut when the broker is lost
+
+`cut_on_broker_loss_s` in `config/spot_session.json` (0 by default: nothing changes) cuts the e-stop endpoint when the connection to the broker has been down for longer than that many seconds, because the bridge no longer hears `cmd/estop` or the global stop meanwhile. The cut happens once per outage and the reason is `broker lost`. A value shorter than the usual network drops of the site would cut the robot for a short loss of the network, so set it with that in mind.
+
 ## A job whose first attempt left no answer
 
 A job key is handled once. When a key was claimed but no answer was stored (the bridge stopped between the claim and the answer), the repeat of that key is refused with a reason that says the key was already handled and no answer was stored for it, and the action is never sent again. With `HYDRA_UMC_DROIDS_IN_DOUBT_CONSULT=1` (default off) the coordinator instead answers the repeat with the state the droid reported with that repeat (`observed_machine_state`, which the MQTT bridge reads from the Spot session): the answer names it, the reading is stored under the key, and a further repeat gets the same answer. It is a reading, not a decision: the gate is not asked again, nothing is sent and the repeat is never accepted. A repeat that comes with no reported state stays refused. Actions that only reduce risk (hold position, go home) are still forwarded again, with or without the switch. Exercised with a scripted state only.

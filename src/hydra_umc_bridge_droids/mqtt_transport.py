@@ -265,6 +265,30 @@ class MessageDispatcher(SharedMessageDispatcher):
         super().on_message(client, userdata, message)
 
 
+class BrokerLossWatch:
+    """Tells when the link to the broker has been down for longer than `limit_s` (0 = never): the bridge no longer hears the stop commands then."""
+
+    def __init__(self, limit_s: float) -> None:
+        self.limit_s = limit_s
+        self._down_since: float | None = None
+        self._fired = False
+
+    def check(self, connected: bool, now: float) -> bool:
+        """True once per outage, the first time it has lasted longer than the limit."""
+        if self.limit_s <= 0:
+            return False
+        if connected:
+            self._down_since = None
+            self._fired = False
+            return False
+        if self._down_since is None:
+            self._down_since = now
+        if not self._fired and now - self._down_since > self.limit_s:
+            self._fired = True
+            return True
+        return False
+
+
 def _on_connected(bridge: DroidMqttBridge):
     """After every (re)connect: follow the announcement of the global stop (when it is on) and the retained settings of the server (when the host allows them)."""
     if not bridge.global_stop.enabled and not bridge.remote_settings:
@@ -298,11 +322,15 @@ def run_forever(
     dispatcher = MessageDispatcher(bridge, **hardening.dispatcher_kwargs())  # type: ignore[arg-type]
     stop = threading.Event()
     session = bridge.session
+    client_holder: list[object] = []
     if session is not None:
         interval = session.config.tick_interval_s
+        broker_watch = BrokerLossWatch(session.config.cut_on_broker_loss_s)
 
         def keep_alive() -> None:
             while not stop.wait(interval):
+                if client_holder and broker_watch.check(bool(client_holder[0].is_connected()), time.monotonic()):  # type: ignore[attr-defined]
+                    session.cut("broker lost")
                 if session.ready:
                     session.tick()
                 bridge.publish_state_if_changed()  # a link lost without a cut, or a state not yet published after a reconnect
@@ -322,6 +350,7 @@ def run_forever(
             on_connected=_on_connected(bridge),
             **hardening.connect_kwargs(),
         )
+        client_holder.append(client)
         bridge.publisher = lambda topic, payload: client.publish(topic, payload, qos=1, retain=True)  # type: ignore[attr-defined]
         client.loop_forever()  # type: ignore[attr-defined]
     finally:
@@ -330,4 +359,4 @@ def run_forever(
         dispatcher.close(wait=False)
 
 
-__all__ = ["DroidMqttBridge", "MessageDispatcher", "run_forever", "TOPIC_PREFIX"]
+__all__ = ["BrokerLossWatch", "DroidMqttBridge", "MessageDispatcher", "run_forever", "TOPIC_PREFIX"]
