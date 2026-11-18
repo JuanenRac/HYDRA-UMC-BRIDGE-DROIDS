@@ -1,0 +1,32 @@
+{
+  "power_state": {
+    "motor_power_state": "STATE_ON"
+  },
+  "battery_states": [
+    {
+      "charge_percentage": {
+        "value": 80.0
+      }
+    }
+  ],
+  "estop_states": [
+    {
+      "name": "hydra-umc-bridge-droids",
+      "type": "TYPE_SOFTWARE",
+      "state": "STATE_NOT_ESTOPPED"
+    }
+  ],
+  "kinematic_state": {
+    "posture": "STAND",
+    "velocity_of_body_in_odom": {
+      "linear": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "angular": {
+        "z": 0.4
+      }
+    }
+  }
+}

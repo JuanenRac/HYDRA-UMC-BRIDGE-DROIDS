@@ -45,6 +45,10 @@ The session counts how long the robot has gone without answering a state reading
 
 `cut_on_broker_loss_s` in `config/spot_session.json` (0 by default: nothing changes) cuts the e-stop endpoint when the connection to the broker has been down for longer than that many seconds, because the bridge no longer hears `cmd/estop` or the global stop meanwhile. The cut happens once per outage and the reason is `broker lost`. A value shorter than the usual network drops of the site would cut the robot for a short loss of the network, so set it with that in mind.
 
+## Reading the state of the robot
+
+The state the gate trusts comes from the `RobotState` of the robot: an e-stop reported as engaged is STOPPED, a body that moves faster than `moving_speed_mps` (0.05 m/s by default) is RUNNING, and a state with neither posture nor velocity is read as IDLE unless `unknown_motion_is_idle` is false, in which case it is not trusted. A forbidden zone can be given in the fixed frame (`frame` of `ForbiddenZone`: `body` by default, or `odom`); `walk_to` then takes the pose of the robot (`pose_in_odom`) and refuses the walk without it.
+
 ## A job whose first attempt left no answer
 
 A job key is handled once. When a key was claimed but no answer was stored (the bridge stopped between the claim and the answer), the repeat of that key is refused with a reason that says the key was already handled and no answer was stored for it, and the action is never sent again. With `HYDRA_UMC_DROIDS_IN_DOUBT_CONSULT=1` (default off) the coordinator instead answers the repeat with the state the droid reported with that repeat (`observed_machine_state`, which the MQTT bridge reads from the Spot session): the answer names it, the reading is stored under the key, and a further repeat gets the same answer. It is a reading, not a decision: the gate is not asked again, nothing is sent and the repeat is never accepted. A repeat that comes with no reported state stays refused. Actions that only reduce risk (hold position, go home) are still forwarded again, with or without the switch. Exercised with a scripted state only.

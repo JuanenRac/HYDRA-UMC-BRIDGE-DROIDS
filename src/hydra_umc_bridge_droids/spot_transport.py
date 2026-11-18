@@ -187,6 +187,7 @@ class SpotDroidControl:
         max_speed_mps: float | None = None,
         speed_params: Callable[[float], object] | None = None,
         forbidden_zones: tuple[ForbiddenZone, ...] = (),
+        pose_in_odom: tuple[float, float, float] | None = None,
         clock: Callable[[], float] = time.time,
     ) -> SpotSendResult:
         """Send the walk a WALK_TO dispatch was accepted for.
@@ -198,7 +199,7 @@ class SpotDroidControl:
         a goal farther than that is refused. A goal inside a forbidden zone, or a straight walk that crosses one, is refused too
         (`forbidden_zones`, a profile's). When `max_speed_mps` is given the command carries `speed_params(max_speed_mps)`; a speed limit
         that cannot be applied (no `speed_params`) refuses the walk instead of sending it unlimited.
-        (`profile.walk_limits()` gives the three keyword arguments of a profile.)
+        (`profile.walk_limits()` gives the three keyword arguments of a profile.) A zone of the fixed (`odom`) frame needs `pose_in_odom`, the (x, y, yaw) of the robot read now; without it the walk is refused.
         """
 
         # A rejected dispatch (the shared SDK gate already said no) must
@@ -221,7 +222,9 @@ class SpotDroidControl:
             if math.hypot(goal_x, goal_y) > max_distance_m:  # type: ignore[arg-type]
                 return SpotSendResult(False, f"the goal is {math.hypot(goal_x, goal_y):.1f} m away, beyond the {max_distance_m:g} m limit")  # type: ignore[arg-type]
         for zone in forbidden_zones:
-            if zone.blocks(goal_x, goal_y):  # type: ignore[arg-type]
+            if zone.frame == "odom" and pose_in_odom is None:
+                return SpotSendResult(False, f"the forbidden zone {zone.name!r} is in the fixed frame and the pose of the robot in it is not known")
+            if zone.blocks(goal_x, goal_y, pose_in_odom):  # type: ignore[arg-type]
                 return SpotSendResult(False, f"the walk ends in or crosses the forbidden zone {zone.name!r}")
         params: object | None = None
         if max_speed_mps is not None:

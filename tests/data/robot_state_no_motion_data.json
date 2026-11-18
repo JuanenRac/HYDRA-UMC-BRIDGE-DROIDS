@@ -1,0 +1,13 @@
+{
+  "power_state": {
+    "motor_power_state": "STATE_ON"
+  },
+  "battery_states": [
+    {
+      "charge_percentage": {
+        "value": 80.0
+      }
+    }
+  ],
+  "kinematic_state": {}
+}
