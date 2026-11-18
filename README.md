@@ -18,14 +18,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB.svg" alt="Python">
   <img src="https://img.shields.io/badge/Safety-Fails%20Closed-red.svg" alt="Safety">
-  <img src="https://img.shields.io/badge/Tests-304%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-317%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.8-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-> **Honesty check - what actually runs today:** the dependency-free coordination core (`coordinator.py`'s `DroidCoordinator`, funneling every dispatch through `HYDRA-UMC-SDK`'s own `evaluate_job()`) and the Boston Dynamics Spot command sender (`spot_transport.py`'s `SpotDroidControl`) are real and covered by 304 passing unit tests (`python tools/build_test.py` - `test_coordinator.py`, `test_spot_transport.py`, plus `test_spot_emulator.py` running the bridge against a protocol-faithful, hand-written Spot emulator, not a live robot). None of it has been exercised against a real bosdyn-client install, a real network link, or a physical Spot/droid - `test_spot_transport.py`'s own `FakeBuilder`/`FakeSink` stand in for `bosdyn-client` entirely (the real library isn't even required to be installed for these tests to pass), and there is no live `run` command yet because no transport (Wi-Fi/BT/4G-5G) or physical droid platform has been validated. See "Roadmap & Known limits" below, which already states this plainly, and `CHANGELOG.md` for exactly what has shipped so far.
+> **Honesty check - what actually runs today:** the dependency-free coordination core (`coordinator.py`'s `DroidCoordinator`, funneling every dispatch through `HYDRA-UMC-SDK`'s own `evaluate_job()`) and the Boston Dynamics Spot command sender (`spot_transport.py`'s `SpotDroidControl`) are real and covered by 317 passing unit tests (`python tools/build_test.py` - `test_coordinator.py`, `test_spot_transport.py`, plus `test_spot_emulator.py` running the bridge against a protocol-faithful, hand-written Spot emulator, not a live robot). None of it has been exercised against a real bosdyn-client install, a real network link, or a physical Spot/droid - `test_spot_transport.py`'s own `FakeBuilder`/`FakeSink` stand in for `bosdyn-client` entirely (the real library isn't even required to be installed for these tests to pass), and there is no live `run` command yet because no transport (Wi-Fi/BT/4G-5G) or physical droid platform has been validated. See "Roadmap & Known limits" below, which already states this plainly, and `CHANGELOG.md` for exactly what has shipped so far.
 
 > **Safety and security status:** this ecosystem is not a certified safety system. There is no hardware E-STOP path, no firmware-enforced limits or interlocks and no verified motion command yet; firmware images are checked with CRC-32 and an Ed25519 signature, and a release build refuses the published development keys (the URTC bootloaders behind the relay no longer take a shared key: the main board verifies an Ed25519 record against a table of public keys, and an expansion board installs an image only when the main board has confirmed that exact image to it); TLS and mutual TLS are optional and off by default; no custom board has been populated or tested yet. Read the [security baseline](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md) and the [threat model](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md) before relying on any statement here for the safety of a person.
 
@@ -37,7 +37,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Version | `0.1.8` |
 | Maturity | Functional |
-| Tests | 304 (`python tools/build_test.py`) |
+| Tests | 317 (`python tools/build_test.py`) |
 | Stack | Python / Boston Dynamics Spot SDK (bosdyn-client) / HYDRA-UMC-SDK |
 | On real hardware | Simulated only: tested against emulators, fakes or simulators; no run on real hardware is recorded for this version |
 
@@ -52,7 +52,7 @@ Each line is one part of this repository and the light says how far it is today.
 | Area | State | What it means here |
 |---|---|---|
 | Software | 🟡 | Works for its main purpose; the honesty check of this README lists what is still missing |
-| Tests | 🟢 | 304 automated tests, run on every change |
+| Tests | 🟡 | 317 automated tests recorded; the exact count, or a workflow that runs them on every change, is not confirmed yet |
 | Real hardware | 🟠 | Simulated only: tested against emulators, fakes or simulators; no run on real hardware is recorded for this version |
 | Integration | 🟠 | Its messages and routes are checked against the shared contracts of the SDK; it has not run together with the real equipment |
 | Deployment | 🟠 | Published as a release; installing it on a clean machine is documented but not recorded |
@@ -145,6 +145,8 @@ The switch of the job entry is read from the environment (off by default):
 | Variable | Default | What it sets |
 |---|---|---|
 | `HYDRA_UMC_DROIDS_IN_DOUBT_CONSULT` | off | `1` answers a repeated job key whose first attempt left no answer with the state the droid reports, instead of refusing it; nothing is run again |
+| `cut_on_broker_loss_s` (`config/spot_session.json`) | `0` | seconds the connection to the MQTT broker may stay down before the session cuts the e-stop endpoint, because the bridge no longer hears `cmd/estop` or the global stop meanwhile; it happens once per outage, with the reason `broker lost`. `0` changes nothing. A value shorter than the usual drops of the network of the site would cut the robot for a short loss of it |
+| `moving_speed_mps`, `unknown_motion_is_idle` (`config/spot_session.json`) | `0.05`, `true` | how the state the gate trusts is read from the `RobotState`: an e-stop reported as engaged is STOPPED, a body that moves faster than `moving_speed_mps` is RUNNING even when the posture does not say so, and a state with neither posture nor velocity is read as IDLE unless `unknown_motion_is_idle` is `false`, in which case it is not trusted. A forbidden zone may also be given in the fixed frame (`frame` of `ForbiddenZone`: `body`, or `odom`); `walk_to` then takes the pose of the robot (`pose_in_odom`) and refuses the walk without it |
 
 ## 🚀 Quick start
 
@@ -169,13 +171,14 @@ control.hold_position(builder, sink)                      # a stop is never gate
 
 ## 🧪 Testing
 
-304 automated `unittest` cases run with `python tools/build_test.py` (it also compiles every module). The tests need no hardware, no network and no optional package: the ones that would need `paho-mqtt`, `pyserial` or a vendor library use a stand-in or are skipped when the package is missing.
+317 automated `unittest` cases run with `python tools/build_test.py` (it also compiles every module). The tests need no hardware, no network and no optional package: the ones that would need `paho-mqtt`, `pyserial` or a vendor library use a stand-in or are skipped when the package is missing.
 
 | Test file | Tests | What it covers |
 |---|---|---|
 | `test_coordinator.py`, `test_observed_state.py`, `test_edge_cases.py` | - | job to action mapping, the observed machine state, edge cases |
 | `test_platform_profiles.py` | - | which actions each platform accepts |
 | `test_spot_transport.py`, `test_spot_emulator.py`, `spot_emulator.py` | - | `SpotDroidControl` against fake builders and a bosdyn-shaped Spot emulator |
+| `test_robot_state_fixtures.py`, `test_walk_limits.py` | - | fixtures shaped like the state message of the robot (speed, e-stops, no motion data), the speed threshold and the forbidden zones in a fixed frame; hand-made, not recorded from a robot |
 
 The CI runs `HYDRA_UMC_CI=1 python tools/ci_validate.py`, which checks the manifest, the documents, the eight READMEs and the pictures, and runs the tests with an SDK checkout.
 
@@ -193,7 +196,7 @@ bash build-test.sh
 bash build.sh
 ```
 
-`build-test` compiles every module under `src/` with `py_compile` and runs the full `unittest` suite discovered under `tests/` (every `test_*.py` file - 304 tests) - deterministically, with no real droid connection, no network and no version/CHANGELOG change. `build` runs that same validation first and, only on success, calls `tools/bump_version.py` to synchronize the version across `pyproject.toml`, `hydra-umc.project.json` and `CHANGELOG.md`. There is no live hardware `run` command yet - that requires a validated transport adapter and a real droid platform.
+`build-test` compiles every module under `src/` with `py_compile` and runs the full `unittest` suite discovered under `tests/` (every `test_*.py` file - 317 tests) - deterministically, with no real droid connection, no network and no version/CHANGELOG change. `build` runs that same validation first and, only on success, calls `tools/bump_version.py` to synchronize the version across `pyproject.toml`, `hydra-umc.project.json` and `CHANGELOG.md`. There is no live hardware `run` command yet - that requires a validated transport adapter and a real droid platform.
 
 ## 🩺 Troubleshooting
 
@@ -221,7 +224,7 @@ HYDRA-UMC-BRIDGE-DROIDS/
 │   ├── spot_graphnav.py           walk to a named waypoint of the recorded map; return home
 │   ├── spot_manipulation.py       arm: pick a detected object, place within reach
 │   └── spot_transport.py          Spot commands through bosdyn-client: hold, sit, stand, walk_to
-├── tests/                         79 tests, with a bosdyn-shaped Spot emulator
+├── tests/                         317 tests, with a bosdyn-shaped Spot emulator
 ├── docs/                          bridge guide
 ├── config/                        Spot session values
 ├── tools/                         build and test runner, version bump, CI validator, README and picture generators and checks

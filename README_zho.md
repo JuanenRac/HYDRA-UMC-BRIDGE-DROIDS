@@ -18,14 +18,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB.svg" alt="Python">
   <img src="https://img.shields.io/badge/Safety-Fails%20Closed-red.svg" alt="Safety">
-  <img src="https://img.shields.io/badge/Tests-304%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-317%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.1.8-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-> **诚实检查——今天真正可运行的部分：** 无依赖的协调核心（`coordinator.py` 中的 `DroidCoordinator`，每次派发都会经过 `HYDRA-UMC-SDK` 自身真正的 `evaluate_job()`）以及波士顿动力 Spot 命令发送器（`spot_transport.py` 中的 `SpotDroidControl`）都是真实的，并由 304 个通过的单元测试覆盖（`python tools/build_test.py` —— `test_coordinator.py`、`test_spot_transport.py`，以及让该桥接对抗一个协议忠实但纯手写的 Spot 模拟器（而非真实机器人）的 `test_spot_emulator.py`）。以上这些都从未针对真实安装的 `bosdyn-client`、真实的网络链路或实体 Spot/机器人进行过验证——`test_spot_transport.py` 自带的 `FakeBuilder`/`FakeSink` 完全替代了 `bosdyn-client`（这些测试甚至不需要安装真正的库就能通过），并且目前还没有实时的 `run` 命令，因为尚未验证任何传输方式（Wi-Fi/BT/4G-5G）或实体机器人平台。详见下文的"当前状态与后续步骤"（已经如实说明了这一点），以及 `CHANGELOG.md` 中目前具体已交付的内容。
+> **诚实检查——今天真正可运行的部分：** 无依赖的协调核心（`coordinator.py` 中的 `DroidCoordinator`，每次派发都会经过 `HYDRA-UMC-SDK` 自身真正的 `evaluate_job()`）以及波士顿动力 Spot 命令发送器（`spot_transport.py` 中的 `SpotDroidControl`）都是真实的，并由 317 个通过的单元测试覆盖（`python tools/build_test.py` —— `test_coordinator.py`、`test_spot_transport.py`，以及让该桥接对抗一个协议忠实但纯手写的 Spot 模拟器（而非真实机器人）的 `test_spot_emulator.py`）。以上这些都从未针对真实安装的 `bosdyn-client`、真实的网络链路或实体 Spot/机器人进行过验证——`test_spot_transport.py` 自带的 `FakeBuilder`/`FakeSink` 完全替代了 `bosdyn-client`（这些测试甚至不需要安装真正的库就能通过），并且目前还没有实时的 `run` 命令，因为尚未验证任何传输方式（Wi-Fi/BT/4G-5G）或实体机器人平台。详见下文的"当前状态与后续步骤"（已经如实说明了这一点），以及 `CHANGELOG.md` 中目前具体已交付的内容。
 
 > **安全与安防现状:**本生态系统不是经认证的安全系统。目前尚无硬件 E-STOP 通路,没有由固件强制执行的限位或联锁,也没有经过验证的运动指令;固件映像使用 CRC-32 和 Ed25519 签名校验,发布构建会拒绝已公开的开发密钥(中继之后的 URTC 引导程序不再使用共享密钥:主板用公钥表校验 Ed25519 记录,扩展板只有在主板确认了该确切映像之后才会安装它);TLS 与双向 TLS 均为可选项,默认关闭;自制电路板尚未组装或测试。在依赖此处任何说法来保障人身安全之前,请先阅读[安全基线](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)和[威胁模型](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)。
 
@@ -37,7 +37,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | 版本 | `0.1.8` |
 | 成熟度 | 可用 |
-| 测试 | 304 (`python tools/build_test.py`) |
+| 测试 | 317 (`python tools/build_test.py`) |
 | 技术栈 | Python / Boston Dynamics Spot SDK (bosdyn-client) / HYDRA-UMC-SDK |
 | 真实硬件 | 仅模拟：使用模拟器、替身或仿真测试；此版本没有在真实硬件上运行的记录 |
 
@@ -52,7 +52,7 @@ GPL-3.0-or-later - see LICENSE
 | 领域 | 状态 | 在这里的含义 |
 |---|---|---|
 | 软件 | 🟡 | 主要用途可用；本 README 中的诚实性检查列出了仍然缺少的内容 |
-| 测试 | 🟢 | 304 项自动测试，每次变更都会运行 |
+| 测试 | 🟡 | 已记录 317 项自动测试；确切数量，或每次变更都运行它们的工作流，尚未确认 |
 | 真实硬件 | 🟠 | 仅模拟：使用模拟器、替身或仿真测试；此版本没有在真实硬件上运行的记录 |
 | 集成 | 🟠 | 其消息和路由已对照 SDK 的共享契约检查；尚未与真实设备一起运行 |
 | 部署 | 🟠 | 已作为发布版本公开；在干净机器上安装有文档，但没有记录 |
@@ -145,6 +145,8 @@ Spot 的主机、用户名和密码是 `open_bosdyn_robot_command()` 的参数�
 | 变量 | 默认值 | 设置内容 |
 |---|---|---|
 | `HYDRA_UMC_DROIDS_IN_DOUBT_CONSULT` | 关闭 | `1` 时，对首次尝试未留下应答的重复任务键，不再直接拒绝，而是用机器人上报的状态作答；不会再次执行任何操作 |
+| `cut_on_broker_loss_s` (`config/spot_session.json`) | `0` | 与 MQTT 代理的连接可持续中断的秒数；超过后会话会切断急停端点，因为这期间桥接听不到 `cmd/estop` 和全局停止；每次中断只切断一次，原因为 `broker lost`。`0` 表示不变。若该值短于现场网络的常见中断时长，网络短暂丢失就会切断机器人 |
+| `moving_speed_mps`, `unknown_motion_is_idle` (`config/spot_session.json`) | `0.05`, `true` | 闸门所信任的状态如何从 `RobotState` 读取：报告为已按下的急停为 STOPPED，移动速度超过 `moving_speed_mps` 的机体即使姿态未说明也是 RUNNING，既无姿态也无速度的状态按 IDLE 读取，除非 `unknown_motion_is_idle` 为 `false`，此时不予信任。禁区也可以按固定坐标系给出（`ForbiddenZone` 的 `frame`：`body` 或 `odom`）；`walk_to` 随后取机器人的位姿（`pose_in_odom`），没有位姿就拒绝行走 |
 
 ## 🚀 快速开始
 
@@ -169,13 +171,14 @@ control.hold_position(builder, sink)                      # a stop is never gate
 
 ## 🧪 测试
 
-运行 `python tools/build_test.py` 会执行 304 个自动 `unittest` 用例（同时编译每个模块）。测试不需要硬件、网络或可选软件包：需要 `paho-mqtt`、`pyserial` 或厂商库的用例使用替身，缺少软件包时则跳过。
+运行 `python tools/build_test.py` 会执行 317 个自动 `unittest` 用例（同时编译每个模块）。测试不需要硬件、网络或可选软件包：需要 `paho-mqtt`、`pyserial` 或厂商库的用例使用替身，缺少软件包时则跳过。
 
 | 测试文件 | 测试数 | 覆盖内容 |
 |---|---|---|
 | `test_coordinator.py`, `test_observed_state.py`, `test_edge_cases.py` | - | 任务到动作的映射、观测到的机器状态、边界情况 |
 | `test_platform_profiles.py` | - | 各平台接受哪些动作 |
 | `test_spot_transport.py`, `test_spot_emulator.py`, `spot_emulator.py` | - | `SpotDroidControl` 对假构建器和 bosdyn 形态的 Spot 模拟器 |
+| `test_robot_state_fixtures.py`, `test_walk_limits.py` | - | 形如机器人状态消息的固定数据（速度、急停、无运动数据）、速度阈值以及固定坐标系中的禁区；手工制作，并非从机器人录制 |
 
 CI 运行 `HYDRA_UMC_CI=1 python tools/ci_validate.py`，检查清单、文档、八个 README 和图片，并使用 SDK 副本运行测试。
 
@@ -193,7 +196,7 @@ bash build-test.sh
 bash build.sh
 ```
 
-`build-test` 使用 `py_compile` 编译 `src/` 下的每个模块,并运行在 `tests/` 下发现的完整 `unittest` 套件(所有 `test_*.py` 文件——共 304 个测试)——以确定性的方式进行,没有真实机器人连接,没有网络,也不会改变版本/CHANGELOG。`build` 会先运行同样的验证,只有成功后才调用 `tools/bump_version.py`,在 `pyproject.toml`、`hydra-umc.project.json` 和 `CHANGELOG.md` 之间同步版本号。目前尚无真正的硬件 `run` 命令——这需要经过验证的传输适配器和真实的机器人平台。
+`build-test` 使用 `py_compile` 编译 `src/` 下的每个模块,并运行在 `tests/` 下发现的完整 `unittest` 套件(所有 `test_*.py` 文件——共 317 个测试)——以确定性的方式进行,没有真实机器人连接,没有网络,也不会改变版本/CHANGELOG。`build` 会先运行同样的验证,只有成功后才调用 `tools/bump_version.py`,在 `pyproject.toml`、`hydra-umc.project.json` 和 `CHANGELOG.md` 之间同步版本号。目前尚无真正的硬件 `run` 命令——这需要经过验证的传输适配器和真实的机器人平台。
 
 ## 🩺 故障排除
 
@@ -221,7 +224,7 @@ HYDRA-UMC-BRIDGE-DROIDS/
 │   ├── spot_graphnav.py           前往已录制地图中的命名路点；返回起点
 │   ├── spot_manipulation.py       机械臂：抓取已检测到的物体，在可达范围内放置
 │   └── spot_transport.py          通过 bosdyn-client 向 Spot 发命令：hold、sit、stand、walk_to
-├── tests/                         79 项测试（含 bosdyn 形态的 Spot 模拟器）
+├── tests/                         317 项测试（含 bosdyn 形态的 Spot 模拟器）
 ├── docs/                          桥接指南
 ├── config/                        Spot 会话参数
 ├── tools/                         构建与测试运行器、版本提升、CI 校验、README 与图片的生成和检查
