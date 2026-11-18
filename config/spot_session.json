@@ -8,5 +8,6 @@
   "cut_on_global_stop": true,
   "tick_interval_s": 2.0,
   "cut_on_link_loss": false,
-  "max_link_loss_s": 10.0
+  "max_link_loss_s": 10.0,
+  "cut_on_broker_loss_s": 0.0
 }

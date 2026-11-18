@@ -6,6 +6,7 @@
 """Topic routing, the shared intake, and the cut of the robot on a global stop, against the Spot fakes."""
 
 import json
+import math
 import unittest
 from types import SimpleNamespace
 
@@ -13,7 +14,7 @@ from hydra_umc_sdk.bridge_contract import CellState
 from hydra_umc_sdk.global_stop import GlobalStopGuard, GlobalStopSettings
 
 from hydra_umc_bridge_droids import DroidCoordinator, SpotSessionConfig
-from hydra_umc_bridge_droids.mqtt_transport import TOPIC_PREFIX, DroidMqttBridge, MessageDispatcher
+from hydra_umc_bridge_droids.mqtt_transport import TOPIC_PREFIX, BrokerLossWatch, DroidMqttBridge, MessageDispatcher
 
 from test_spot_session import make_session
 
@@ -126,6 +127,34 @@ class GlobalStopTests(unittest.TestCase):
         finally:
             dispatcher.close(wait=False)
         self.assertFalse(session.ready)
+
+
+class BrokerLossTests(unittest.TestCase):
+    def test_it_is_off_by_default_and_never_fires(self):
+        watch = BrokerLossWatch(SpotSessionConfig().cut_on_broker_loss_s)
+        self.assertFalse(any(watch.check(False, float(second)) for second in range(0, 100000, 100)))
+
+    def test_it_fires_once_when_the_outage_outlasts_the_limit(self):
+        watch = BrokerLossWatch(10.0)
+        self.assertFalse(watch.check(True, 0.0))
+        self.assertFalse(watch.check(False, 1.0))
+        self.assertFalse(watch.check(False, 11.0), "exactly the limit is still tolerated")
+        self.assertTrue(watch.check(False, 11.5))
+        self.assertFalse(watch.check(False, 30.0), "one cut per outage")
+
+    def test_a_short_drop_resets_and_a_new_outage_counts_from_its_start(self):
+        watch = BrokerLossWatch(10.0)
+        self.assertFalse(watch.check(False, 0.0))
+        self.assertFalse(watch.check(False, 8.0))
+        self.assertFalse(watch.check(True, 9.0))
+        self.assertFalse(watch.check(False, 15.0))
+        self.assertFalse(watch.check(False, 24.0))
+        self.assertTrue(watch.check(False, 25.5))
+
+    def test_the_setting_must_be_a_number_of_zero_or_more(self):
+        for bad in (-1, math.nan, True, "5"):
+            self.assertTrue(SpotSessionConfig(cut_on_broker_loss_s=bad).problems(), bad)
+        self.assertEqual(SpotSessionConfig(cut_on_broker_loss_s=30).problems(), [])
 
 
 if __name__ == "__main__":

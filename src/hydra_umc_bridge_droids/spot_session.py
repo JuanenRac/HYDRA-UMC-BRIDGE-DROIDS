@@ -71,6 +71,7 @@ class SpotSessionConfig:
     tick_interval_s: float = 2.0
     cut_on_link_loss: bool = False
     max_link_loss_s: float = 10.0
+    cut_on_broker_loss_s: float = 0.0
 
     def problems(self) -> list[str]:
         found: list[str] = []
@@ -86,6 +87,8 @@ class SpotSessionConfig:
             found.append("cut_on_global_stop must be true or false")
         if not isinstance(self.cut_on_link_loss, bool):
             found.append("cut_on_link_loss must be true or false")
+        if not (_is_number(self.cut_on_broker_loss_s) and self.cut_on_broker_loss_s >= 0):
+            found.append("cut_on_broker_loss_s must be a finite number, 0 or more (0 = never cut for a lost broker)")
         if not isinstance(self.home_waypoint, str) or not self.home_waypoint.strip():
             found.append("home_waypoint must be a non-empty name")
         return found
