@@ -385,10 +385,13 @@ def open_bosdyn_session(hostname: str, username: str, password: str, config: Spo
                 return False
             # the keep-alive thread leaves one item in the queue for each check-in that failed: empty the queue and refuse only when one of them is an error
             failed = False
-            while True:
+            queue = self.keep_alive.status_queue
+            for _ in range(1000):  # bounded: a queue that never empties must not hold the keep-alive loop
+                if queue.empty():
+                    break
                 try:
-                    item = self.keep_alive.status_queue.get_nowait()
-                except Exception:  # the queue is empty
+                    item = queue.get_nowait()
+                except Exception:  # emptied by the keep-alive thread meanwhile
                     break
                 failed = failed or isinstance(item, BaseException)
             return not failed
