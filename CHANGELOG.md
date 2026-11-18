@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The README names the session settings of the observed state:** the configuration table lists `cut_on_broker_loss_s`, `moving_speed_mps`, `unknown_motion_is_idle` and the fixed frame of a forbidden zone, the test table lists the fixture and walk-limit tests, and the test counts are current. The README and its seven translations are regenerated.
+
 - **A forbidden zone can be given in a fixed frame:** `ForbiddenZone` takes `frame` (`body` by default, as before, or `odom`); a walk is then judged from the pose of the robot (`pose_in_odom` of `walk_to`), so the same zone gives the same answer whatever way the robot faces, and a walk with such a zone and no pose is refused.
 
 - **The observed state of the robot reads its velocity and every e-stop of the state:** a body that moves faster than `moving_speed_mps` is RUNNING even when the posture does not say so, an e-stop reported as engaged is STOPPED, and with `unknown_motion_is_idle` set to false a state that carries neither posture nor velocity is not trusted (the default keeps the old reading). The check-in of the e-stop now empties the queue of the keep-alive and fails only when an item is an error. The tests read fixtures shaped like the state message of the robot.
