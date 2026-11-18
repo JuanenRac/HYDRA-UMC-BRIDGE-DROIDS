@@ -4,6 +4,10 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A forbidden zone can be given in a fixed frame:** `ForbiddenZone` takes `frame` (`body` by default, as before, or `odom`); a walk is then judged from the pose of the robot (`pose_in_odom` of `walk_to`), so the same zone gives the same answer whatever way the robot faces, and a walk with such a zone and no pose is refused.
+
+- **The observed state of the robot reads its velocity and every e-stop of the state:** a body that moves faster than `moving_speed_mps` is RUNNING even when the posture does not say so, an e-stop reported as engaged is STOPPED, and with `unknown_motion_is_idle` set to false a state that carries neither posture nor velocity is not trusted (the default keeps the old reading). The check-in of the e-stop now empties the queue of the keep-alive and fails only when an item is an error. The tests read fixtures shaped like the state message of the robot.
+
 - **The session can cut the robot when the broker has been lost for too long:** `cut_on_broker_loss_s` (0 by default, which changes nothing) cuts the e-stop endpoint once the connection to the broker has been down for longer than that many seconds, because the bridge no longer hears the stop commands then. A short network drop does not cut anything unless the value is set below its length.
 
 

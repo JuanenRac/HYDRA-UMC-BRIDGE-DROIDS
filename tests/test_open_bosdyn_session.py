@@ -6,6 +6,7 @@
 """open_bosdyn_session builds the adapters of the session on top of the vendor library; here that library is a small fake, so the wiring is checked
 without a Spot and without the library installed. The keep-alive thread and the shutdown of run_forever are checked with a fake MQTT client."""
 
+import queue
 import sys
 import threading
 import types
@@ -27,8 +28,7 @@ class FakeEndpoint:
 class FakeEstopKeepAlive:
     def __init__(self, endpoint):
         self.endpoint, self.stopped, self.allowed = endpoint, False, False
-        self.status_queue = mock.Mock()
-        self.status_queue.empty.return_value = True
+        self.status_queue = queue.Queue()
 
     def stop(self):
         self.stopped = True
@@ -126,8 +126,12 @@ class OpenSessionTests(unittest.TestCase):
         endpoint = session.estop.keep_alive.endpoint
         self.assertEqual((endpoint.timeout, endpoint.simple, endpoint.name), (7.5, True, "hydra-umc-bridge-droids"))
         self.assertTrue(session.estop.check_in())
-        session.estop.keep_alive.status_queue.empty.return_value = False
-        self.assertFalse(session.estop.check_in())  # a message in the queue means the endpoint is not healthy
+        session.estop.keep_alive.status_queue.put("check-in ok")
+        self.assertTrue(session.estop.check_in())  # a plain status item is not an error, and the queue is emptied
+        self.assertTrue(session.estop.keep_alive.status_queue.empty())
+        session.estop.keep_alive.status_queue.put(RuntimeError("check-in refused"))
+        self.assertFalse(session.estop.check_in())  # an error in the queue means the endpoint is not healthy
+        self.assertTrue(session.estop.check_in())  # and it is read once
         session.estop.allow()
         self.assertTrue(session.estop.keep_alive.allowed)
         session.estop.cut()

@@ -72,6 +72,8 @@ class SpotSessionConfig:
     cut_on_link_loss: bool = False
     max_link_loss_s: float = 10.0
     cut_on_broker_loss_s: float = 0.0
+    unknown_motion_is_idle: bool = True
+    moving_speed_mps: float = 0.05
 
     def problems(self) -> list[str]:
         found: list[str] = []
@@ -89,6 +91,10 @@ class SpotSessionConfig:
             found.append("cut_on_link_loss must be true or false")
         if not (_is_number(self.cut_on_broker_loss_s) and self.cut_on_broker_loss_s >= 0):
             found.append("cut_on_broker_loss_s must be a finite number, 0 or more (0 = never cut for a lost broker)")
+        if not isinstance(self.unknown_motion_is_idle, bool):
+            found.append("unknown_motion_is_idle must be true or false")
+        if not _positive(self.moving_speed_mps):
+            found.append("moving_speed_mps must be a finite, positive number")
         if not isinstance(self.home_waypoint, str) or not self.home_waypoint.strip():
             found.append("home_waypoint must be a non-empty name")
         return found
@@ -282,11 +288,36 @@ class SpotSession:
         battery = self._battery(state)
         if battery is not None and battery < self.config.min_battery_pct:
             return MachineState.HOLDING
+        estops = state.get("estop_states")
+        if isinstance(estops, (list, tuple)) and any(isinstance(entry, Mapping) and entry.get("state") == "STATE_ESTOPPED" for entry in estops):
+            return MachineState.STOPPED
         kinematic = state.get("kinematic_state")
         posture = kinematic.get("posture") if isinstance(kinematic, Mapping) else None
         if posture == "MOVING":
             return MachineState.RUNNING
+        speed = self._body_speed(kinematic)
+        if speed is not None:
+            return MachineState.RUNNING if speed > self.config.moving_speed_mps else MachineState.IDLE
+        if posture is None and not self.config.unknown_motion_is_idle:
+            return None  # neither a posture nor a velocity: whether it moves cannot be known, so nothing is trusted
         return MachineState.IDLE
+
+    @staticmethod
+    def _body_speed(kinematic: object) -> float | None:
+        """The speed of the body in m/s (the larger of the linear and the angular one) from the velocity of the RobotState, or None when it carries none."""
+
+        if not isinstance(kinematic, Mapping):
+            return None
+        velocity = kinematic.get("velocity_of_body_in_odom") or kinematic.get("velocity_of_body_in_vision")
+        if not isinstance(velocity, Mapping):
+            return None
+        linear, angular = velocity.get("linear"), velocity.get("angular")
+        parts: list[float] = []
+        if isinstance(linear, Mapping):
+            parts.append(math.sqrt(sum(float(linear.get(axis, 0.0)) ** 2 for axis in ("x", "y", "z") if _is_number(linear.get(axis, 0.0)))))
+        if isinstance(angular, Mapping) and _is_number(angular.get("z", 0.0)):
+            parts.append(abs(float(angular.get("z", 0.0))))
+        return max(parts) if parts else None
 
     def shutdown(self) -> SessionResult:
         """Orderly end: power the motors off, give the lease back. Never raises."""
@@ -350,7 +381,20 @@ def open_bosdyn_session(hostname: str, username: str, password: str, config: Spo
             self.keep_alive = bosdyn.client.estop.EstopKeepAlive(endpoint)
 
         def check_in(self) -> bool:
-            return self.keep_alive is not None and self.keep_alive.status_queue.empty()
+            if self.keep_alive is None:
+                return False
+            # the keep-alive thread leaves one item in the queue for each check-in that failed: empty the queue and refuse only when one of them is an error
+            failed = False
+            queue = self.keep_alive.status_queue
+            for _ in range(1000):  # bounded: a queue that never empties must not hold the keep-alive loop
+                if queue.empty():
+                    break
+                try:
+                    item = queue.get_nowait()
+                except Exception:  # emptied by the keep-alive thread meanwhile
+                    break
+                failed = failed or isinstance(item, BaseException)
+            return not failed
 
         def cut(self) -> None:
             if self.keep_alive is not None:

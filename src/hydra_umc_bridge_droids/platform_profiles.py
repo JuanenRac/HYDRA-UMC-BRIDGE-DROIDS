@@ -30,13 +30,15 @@ def _finite(value: object) -> bool:
 
 @dataclass(frozen=True)
 class ForbiddenZone:
-    """A rectangle, in the frame of the WALK_TO goal (metres, the body frame of the robot), that a walk may neither end in nor cross."""
+    """A rectangle (metres) that a walk may neither end in nor cross. ``frame`` is ``body`` (the default: the frame of the WALK_TO goal, the body of the robot, so the
+    zone moves with it) or ``odom`` (a fixed frame: the walk is then checked from the pose of the robot in that frame, which the caller has to give)."""
 
     name: str
     x_min: float
     y_min: float
     x_max: float
     y_max: float
+    frame: str = "body"
 
     def __post_init__(self) -> None:
         if not isinstance(self.name, str) or not self.name.strip():
@@ -45,11 +47,23 @@ class ForbiddenZone:
             raise ValueError(f"forbidden zone {self.name!r}: every bound must be a finite number")
         if self.x_min > self.x_max or self.y_min > self.y_max:
             raise ValueError(f"forbidden zone {self.name!r}: a minimum is above its maximum")
+        if self.frame not in ("body", "odom"):
+            raise ValueError(f"forbidden zone {self.name!r}: frame must be body or odom, not {self.frame!r}")
 
-    def blocks(self, goal_x: float, goal_y: float) -> bool:
-        """True when the straight walk from the robot (the origin) to the goal ends inside the zone or crosses it."""
+    def blocks(self, goal_x: float, goal_y: float, pose: tuple[float, float, float] | None = None) -> bool:
+        """True when the straight walk from the robot to the goal ends inside the zone or crosses it.
+
+        A ``body`` zone looks at the walk from the origin to the goal. An ``odom`` zone needs ``pose`` (x, y, yaw of the robot in the fixed frame) to put the walk in that frame;
+        without it the walk cannot be judged and counts as blocked (fail closed)."""
+        start_x = start_y = 0.0
+        if self.frame == "odom":
+            if pose is None or not all(_finite(v) for v in pose):
+                return True
+            start_x, start_y, yaw = pose
+            cos, sin = math.cos(yaw), math.sin(yaw)
+            goal_x, goal_y = start_x + cos * goal_x - sin * goal_y, start_y + sin * goal_x + cos * goal_y
         t_enter, t_leave = 0.0, 1.0
-        for start, delta, low, high in ((0.0, goal_x, self.x_min, self.x_max), (0.0, goal_y, self.y_min, self.y_max)):
+        for start, delta, low, high in ((start_x, goal_x - start_x, self.x_min, self.x_max), (start_y, goal_y - start_y, self.y_min, self.y_max)):
             if delta == 0.0:
                 if not low <= start <= high:
                     return False
