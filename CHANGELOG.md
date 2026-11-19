@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.1.9]
+
 - **The status table of the README shows the exact test count as confirmed:** the table is regenerated from the recorded data, so the Tests line is green for a count that was collected and that a workflow runs. The README and its seven translations are regenerated.
 
 - **The README names the session settings of the observed state:** the configuration table lists `cut_on_broker_loss_s`, `moving_speed_mps`, `unknown_motion_is_idle` and the fixed frame of a forbidden zone, the test table lists the fixture and walk-limit tests, and the test counts are current. The README and its seven translations are regenerated.
@@ -14,6 +16,7 @@ All notable changes to this project are documented here.
 
 - **The session can cut the robot when the broker has been lost for too long:** `cut_on_broker_loss_s` (0 by default, which changes nothing) cuts the e-stop endpoint once the connection to the broker has been down for longer than that many seconds, because the bridge no longer hears the stop commands then. A short network drop does not cut anything unless the value is set below its length.
 
+- Successful incremental build: synchronized package metadata and `hydra-umc.project.json`.
 
 ## [0.1.8]
 
