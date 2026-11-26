@@ -60,3 +60,5 @@ Before deploying an adapter: select the real transport (Wi-Fi/BT/4G-5G) and its 
 ## Signed release of the global stop
 
 `HYDRA_UMC_DROIDS_GLOBAL_STOP_KEY_FILE` (not set by default): the file of the key the server signs the announcement with (at least 32 characters, mode 600). Every `SAFE_STOP` is obeyed as before, and only a signed `READY` newer than the last signed announcement ends a stop; the bridge does not start if the file cannot be used.
+
+With the key file, the bridge keeps on disk the newest signed announcement it accepted and the `READY` in force, so an old signed `READY` published again after a restart ends nothing. A file that is damaged, altered or made for another key or topic keeps the bridge still until an operator removes it and restarts; when it cannot be written a `READY` is not believed; a bridge that was stopped starts stopped. Without the variable the file is in `$STATE_DIRECTORY` (systemd), else in `$XDG_STATE_HOME/hydra-umc` or `~/.local/state/hydra-umc`; in a container keep it on a volume. `HYDRA_UMC_DROIDS_GLOBAL_STOP_STATE_FILE` names the file.
