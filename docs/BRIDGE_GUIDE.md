@@ -56,3 +56,7 @@ A job key is handled once. When a key was claimed but no answer was stored (the 
 ## Hardware acceptance gate
 
 Before deploying an adapter: select the real transport (Wi-Fi/BT/4G-5G) and its authentication, document the droid's own command interface and every action trigger's real parameter mapping, bind authenticated droid identity, verify stale/disconnected-state behavior, test `HOLD_POSITION` independently as a real safe fallback (the stop command is implemented; the E-Stop keep-alive it should sit beside is not), and perform bench validation before any occupied-space test. The droid's own onboard controller remains responsible for balance and motion safety.
+
+## Signed release of the global stop
+
+`HYDRA_UMC_DROIDS_GLOBAL_STOP_KEY_FILE` (not set by default): the file of the key the server signs the announcement with (at least 32 characters, mode 600). Every `SAFE_STOP` is obeyed as before, and only a signed `READY` newer than the last signed announcement ends a stop; the bridge does not start if the file cannot be used.
