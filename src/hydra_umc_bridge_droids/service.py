@@ -23,6 +23,7 @@ from dataclasses import dataclass, field, fields
 from pathlib import Path
 
 from hydra_umc_sdk.bridge_contract import CellState
+from hydra_umc_sdk.cell_state_source import CellStateSource, CellStateSourceError, config_from_environment
 
 from .coordinator import DroidCoordinator
 from .droid_policy import DroidPolicy
@@ -139,6 +140,13 @@ def _read_secret(path: str, what: str) -> str:
 def build_bridge(config: ServiceConfig, session_config: SpotSessionConfig) -> DroidMqttBridge:
     """The bridge, with a brought-up Spot session when the configuration names one (raises RuntimeError when the bring-up fails)."""
 
+    # where the cell is read besides the session (HYDRA_UMC_DROIDS_CELL_STATE_SOURCE and its companions, the shared readers of the SDK); built before the robot is opened
+    try:
+        source = config_from_environment("DROIDS")
+        reader = CellStateSource(source) if source is not None else None
+    except CellStateSourceError as error:
+        raise ConfigError(f"the cell state source cannot be used: {error}") from error
+
     session = None
     if config.spot.host:
         password = _read_secret(config.spot.password_file, "Spot password")
@@ -149,13 +157,17 @@ def build_bridge(config: ServiceConfig, session_config: SpotSessionConfig) -> Dr
 
     def cell_state() -> CellState:
         # without a robot the bridge only gates and the job carries its own machine state; with one, a cut session means the cell is faulted
-        return CellState.READY if session is None or session.ready else CellState.FAULT
+        if session is not None and not session.ready:
+            return CellState.FAULT
+        return CellState(reader.read()) if reader is not None else CellState.READY
 
     policy = config.policy
     verifier = None
     if policy.confirmation_required and policy.confirmation_key_file.strip():
         verifier = ConfirmationVerifier(load_key(policy.confirmation_key_file), max_ttl_s=policy.confirmation_max_ttl_s, max_clock_skew_s=policy.confirmation_max_clock_skew_s)
-    return DroidMqttBridge(DroidCoordinator(return_home_always=policy.return_home_always), cell_state, session, policy=DroidPolicy(policy.confirmation_required, verifier))
+    bridge = DroidMqttBridge(DroidCoordinator(return_home_always=policy.return_home_always), cell_state, session, policy=DroidPolicy(policy.confirmation_required, verifier))
+    bridge.cell_source = source.source if source is not None else "none"
+    return bridge
 
 
 def main(argv: Sequence[str] | None = None) -> int:

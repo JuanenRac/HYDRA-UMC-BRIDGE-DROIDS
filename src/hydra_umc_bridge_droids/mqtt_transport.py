@@ -81,6 +81,8 @@ class DroidMqttBridge:
         # the signed human confirmation for the actions that move the droid; None keeps the entry as it was, the service always builds one from the configuration
         self._policy = policy
         self._cell_state = cell_state
+        # which source the cell state is read from ("none", "fixed", "file", "safety_zones"), said in the answer to a job; None (a bridge built by hand) says nothing
+        self.cell_source: str | None = None
         self.session = session
         self._clock = clock
         # how the state reaches the broker (set by run_forever once it is connected); None while there is no connection
@@ -236,7 +238,9 @@ class DroidMqttBridge:
             used = self._policy.use(verdict)
             if used is not None:
                 return {"allowed": False, "action": dispatch.action, "reason": used, "mode": "refused", "parameters": {}, "executed": False}
+        said = {} if self.cell_source is None else {"cell_source": self.cell_source}
         return {
+            **said,
             "allowed": dispatch.accepted,
             "action": dispatch.action,
             "reason": dispatch.reason,
