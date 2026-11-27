@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here.
 
-## [Unreleased]
+## [0.2.0] - Signed global stop release and settings that survive a restart
 
 - **The switches announced by the server survive a restart:** the counter of the last signed settings message and the values it carried are kept in a state file (`HYDRA_UMC_DROIDS_SETTINGS_STATE_FILE`, or the settings key file with `.state.json` after its name), so a restart neither forgets the replay counter nor comes back less strict: following the global stop, cutting the session on it, requiring the confirmation and the restriction on going home are applied again at the start; anything that relaxes the bridge needs a current signed message. A message that arrives expired is now said in the log.
 - **The state of the cell can come from a real source:** `HYDRA_UMC_DROIDS_CELL_STATE_SOURCE` (`fixed`, `file` or `safety_zones`, the shared readers of the SDK) is what the gate reads besides the Spot session, and the answer to a job names it in `cell_source` (`none` without one, where the cell is `READY` as before). Whatever cannot be trusted reads as `SAFE_STOP`. Tests.
