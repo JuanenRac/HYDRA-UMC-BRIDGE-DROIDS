@@ -146,7 +146,7 @@ Spot 的主机、用户名和密码是 `open_bosdyn_robot_command()` 的参数�
 |---|---|---|
 | `HYDRA_UMC_DROIDS_IN_DOUBT_CONSULT` | 关闭 | `1` 时，对首次尝试未留下应答的重复任务键，不再直接拒绝，而是用机器人上报的状态作答；不会再次执行任何操作 |
 | `cut_on_broker_loss_s` (`config/spot_session.json`) | `0` | 与 MQTT 代理的连接可持续中断的秒数；超过后会话会切断急停端点，因为这期间桥接听不到 `cmd/estop` 和全局停止；每次中断只切断一次，原因为 `broker lost`。`0` 表示不变。若该值短于现场网络的常见中断时长，网络短暂丢失就会切断机器人 |
-| `moving_speed_mps`, `unknown_motion_is_idle` (`config/spot_session.json`) | `0.05`, `true` | 闸门所信任的状态如何从 `RobotState` 读取：报告为已按下的急停为 STOPPED，移动速度超过 `moving_speed_mps` 的机体即使姿态未说明也是 RUNNING，既无姿态也无速度的状态按 IDLE 读取，除非 `unknown_motion_is_idle` 为 `false`，此时不予信任。禁区也可以按固定坐标系给出（`ForbiddenZone` 的 `frame`：`body` 或 `odom`）；`walk_to` 随后取机器人的位姿（`pose_in_odom`），没有位姿就拒绝行走 |
+| `moving_speed_mps`, `unknown_motion_is_idle` (`config/spot_session.json`) | `0.05`, `false` | 闸门所信任的状态如何从 `RobotState` 读取：报告为已按下的急停为 STOPPED，移动速度超过 `moving_speed_mps` 的机体即使姿态未说明也是 RUNNING，既无姿态也无速度的状态不予信任（无法得知机器人是否在动，因此不按空闲读取），除非 `unknown_motion_is_idle` 为 `true`，此时按 IDLE 读取。禁区也可以按固定坐标系给出（`ForbiddenZone` 的 `frame`：`body` 或 `odom`）；`walk_to` 随后取机器人的位姿（`pose_in_odom`），没有位姿就拒绝行走 |
 
 ## 🚀 快速开始
 

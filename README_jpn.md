@@ -146,7 +146,7 @@ Spot のホスト・ユーザー名・パスワードは `open_bosdyn_robot_comm
 |---|---|---|
 | `HYDRA_UMC_DROIDS_IN_DOUBT_CONSULT` | オフ | `1` にすると、最初の試行が応答を残さなかった再送のジョブキーを拒否せず、ドロイドが報告する状態で応答します。何も再実行されません |
 | `cut_on_broker_loss_s` (`config/spot_session.json`) | `0` | MQTT ブローカーへの接続が切れたままでもよい秒数。これを超えると、その間ブリッジは `cmd/estop` もグローバル停止も受け取れないため、セッションは e-stop エンドポイントを遮断します。遮断は 1 回の断につき 1 度で、理由は `broker lost` です。`0` なら何も変わりません。現場のネットワークの通常の瞬断より短い値にすると、短い断でもロボットを遮断します |
-| `moving_speed_mps`, `unknown_motion_is_idle` (`config/spot_session.json`) | `0.05`, `true` | ゲートが信頼する状態を `RobotState` からどう読むか。作動中と報告された e-stop は STOPPED、`moving_speed_mps` より速く動く機体は姿勢が示していなくても RUNNING、姿勢も速度もない状態は IDLE として読みますが、`unknown_motion_is_idle` が `false` のときは信頼しません。禁止ゾーンは固定フレームでも指定でき（`ForbiddenZone` の `frame`：`body` または `odom`）、その場合 `walk_to` はロボットの姿勢（`pose_in_odom`）を受け取り、姿勢がなければ歩行を拒否します |
+| `moving_speed_mps`, `unknown_motion_is_idle` (`config/spot_session.json`) | `0.05`, `false` | ゲートが信頼する状態を `RobotState` からどう読むか。作動中と報告された e-stop は STOPPED、`moving_speed_mps` より速く動く機体は姿勢が示していなくても RUNNING、姿勢も速度もない状態は信頼しません（ロボットが動いているか分からないため、空いているとは読みません）。`unknown_motion_is_idle` が `true` のときだけ IDLE として読みます。禁止ゾーンは固定フレームでも指定でき（`ForbiddenZone` の `frame`：`body` または `odom`）、その場合 `walk_to` はロボットの姿勢（`pose_in_odom`）を受け取り、姿勢がなければ歩行を拒否します |
 
 ## 🚀 クイックスタート
 

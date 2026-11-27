@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A Spot state that does not say whether it moves is no longer read as free:** `unknown_motion_is_idle` is now `false` by default (in the code and in `config/spot_session.json`), so a `RobotState` with neither posture nor velocity is not trusted. A configuration that sets it to `true` keeps the old reading.
+
 - **Token and password files saved with a byte order mark are read:** a file written by an editor of Windows as "UTF-8 with BOM" kept the mark in front of the secret, so the credential was refused or could not be sent in a header. The mark is dropped now; a file in another encoding (UTF-16) is refused with a clear message.
 
 ## [0.2.0] - Signed global stop release and settings that survive a restart

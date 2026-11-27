@@ -49,7 +49,7 @@ The session counts how long the robot has gone without answering a state reading
 
 ## Reading the state of the robot
 
-The state the gate trusts comes from the `RobotState` of the robot: an e-stop reported as engaged is STOPPED, a body that moves faster than `moving_speed_mps` (0.05 m/s by default) is RUNNING, and a state with neither posture nor velocity is read as IDLE unless `unknown_motion_is_idle` is false, in which case it is not trusted. A forbidden zone can be given in the fixed frame (`frame` of `ForbiddenZone`: `body` by default, or `odom`); `walk_to` then takes the pose of the robot (`pose_in_odom`) and refuses the walk without it.
+The state the gate trusts comes from the `RobotState` of the robot: an e-stop reported as engaged is STOPPED, a body that moves faster than `moving_speed_mps` (0.05 m/s by default) is RUNNING, and a state with neither posture nor velocity is not trusted: whether the robot moves is unknown, so it is not read as free. `unknown_motion_is_idle` set to true reads it as IDLE. A forbidden zone can be given in the fixed frame (`frame` of `ForbiddenZone`: `body` by default, or `odom`); `walk_to` then takes the pose of the robot (`pose_in_odom`) and refuses the walk without it.
 
 ## A job whose first attempt left no answer
 
