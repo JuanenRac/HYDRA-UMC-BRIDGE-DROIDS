@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented here.
 
+## [Unreleased]
+
+- **Token and password files saved with a byte order mark are read:** a file written by an editor of Windows as "UTF-8 with BOM" kept the mark in front of the secret, so the credential was refused or could not be sent in a header. The mark is dropped now; a file in another encoding (UTF-16) is refused with a clear message.
+
 ## [0.2.0] - Signed global stop release and settings that survive a restart
 
 - **The switches announced by the server survive a restart:** the counter of the last signed settings message and the values it carried are kept in a state file (`HYDRA_UMC_DROIDS_SETTINGS_STATE_FILE`, or the settings key file with `.state.json` after its name), so a restart neither forgets the replay counter nor comes back less strict: following the global stop, cutting the session on it, requiring the confirmation and the restriction on going home are applied again at the start; anything that relaxes the bridge needs a current signed message. A message that arrives expired is now said in the log.
