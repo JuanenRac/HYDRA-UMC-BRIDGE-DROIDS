@@ -26,6 +26,8 @@ from typing import Callable, Mapping
 
 from hydra_umc_sdk.signed_commands import CommandSigningError, load_key, verify_command
 
+from .settings_state import SettingsState
+
 REMOTE_ENVIRONMENT = "HYDRA_UMC_DROIDS_REMOTE_SETTINGS"
 SETTINGS_TOPIC = "hydra/bridges/droids/settings"
 MAX_SETTINGS_BYTES = 4096
@@ -47,11 +49,23 @@ def remote_settings_allowed(environ: Mapping[str, str] | None = None) -> bool:
 class SettingsVerifier:
     """Judges the signed settings message: signature, expiry and counter. Without a key it refuses everything (`usable` is False)."""
 
-    def __init__(self, key: bytes | None, *, clock: Callable[[], float] = time.time) -> None:
+    def __init__(self, key: bytes | None, *, clock: Callable[[], float] = time.time, state: SettingsState | None = None) -> None:
         self._key = key
         self._clock = clock
-        self._last_seq = -1
+        self._state = state if key is not None else None
+        # the counter and the values of the last message applied before a restart (settings_state.py)
+        self._last_seq, self.remembered = self._state.load() if self._state is not None else (-1, {})
         self.last_reason = ""
+
+    def remember(self, found: Mapping[str, object]) -> None:
+        """Keep what was just applied next to its counter."""
+        values = {key: value for key, value in found.items() if isinstance(value, (bool, str))}
+        if not values:
+            return
+        merged = {**self.remembered, **values}
+        self.remembered = merged
+        if self._state is not None:
+            self._state.save(self._last_seq, merged)
 
     @classmethod
     def from_environment(cls, environ: Mapping[str, str] | None = None, *, clock: Callable[[], float] = time.time) -> "SettingsVerifier":
@@ -61,7 +75,7 @@ class SettingsVerifier:
         if not path:
             return cls(None, clock=clock)
         try:
-            return cls(load_key(path), clock=clock)
+            return cls(load_key(path), clock=clock, state=SettingsState.from_environment(path, source))
         except CommandSigningError as error:
             _LOG.warning("the key of the signed settings cannot be used, remote settings stay off: %s", error)
             return cls(None, clock=clock)
@@ -78,6 +92,8 @@ class SettingsVerifier:
         verdict = verify_command(SETTINGS_TOPIC, body, self._key, now_ms=int(self._clock() * 1000), max_clock_skew_ms=MAX_SKEW_MS, max_expires_in_ms=MAX_EXPIRES_MS)
         if not verdict.ok:
             self.last_reason = verdict.reason
+            if "expired" in verdict.reason:
+                _LOG.warning("a remote setting arrived expired and is not applied; what was applied before stays: %s", ", ".join(sorted(self.remembered)) or "nothing")
             return False
         seq = body.get("seq")
         if type(seq) is not int or seq < 0:

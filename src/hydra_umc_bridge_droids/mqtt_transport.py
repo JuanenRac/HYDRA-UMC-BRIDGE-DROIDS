@@ -102,8 +102,19 @@ class DroidMqttBridge:
         self.remote_settings = bool(wanted and self.settings_verifier is not None and self.settings_verifier.usable)
         if wanted and not self.remote_settings:
             _LOG.warning("remote settings are allowed but there is no usable key for them: they stay off")
+        if self.remote_settings:
+            self._restore_remote_settings()
 
     # -- the switches announced by the server ------------------------------
+    def _restore_remote_settings(self) -> None:
+        """After a restart, apply again what the server had set that makes this bridge stricter; the rest waits for a current message."""
+        assert self.settings_verifier is not None
+        stricter = {"globalStop": True, "cutOnGlobalStop": True, "confirmationRequired": True, "returnHomeAlways": False}
+        kept = {key: value for key, value in self.settings_verifier.remembered.items() if stricter.get(key) is value}
+        if kept:
+            self._apply_switches({key: bool(value) for key, value in kept.items()}, None)
+            _LOG.info("remote settings of before the restart applied again: %s", ", ".join(f"{key}={value}" for key, value in sorted(kept.items())))
+
     def note_remote_settings(self, payload: bytes, client: object = None) -> dict[str, bool]:
         """Apply the switches of a settings message and return what was applied ({} when the host does not allow remote settings or the message is not valid)."""
         if not self.remote_settings:
@@ -111,6 +122,13 @@ class DroidMqttBridge:
         found = parse_remote_settings(payload, self.settings_verifier)
         if not found:
             return {}
+        self._apply_switches(found, client)
+        if self.settings_verifier is not None:
+            self.settings_verifier.remember(found)
+        _LOG.info("remote settings applied: %s", ", ".join(f"{key}={value}" for key, value in sorted(found.items())))
+        return found
+
+    def _apply_switches(self, found: dict[str, bool], client: object) -> None:
         session = self.session
         if "cutOnGlobalStop" in found and session is not None:
             session.config = dataclasses.replace(session.config, cut_on_global_stop=found["cutOnGlobalStop"])
@@ -125,8 +143,6 @@ class DroidMqttBridge:
             self.global_stop.settings = dataclasses.replace(settings, enabled=found["globalStop"])
             if found["globalStop"] and client is not None:
                 client.subscribe(self.global_stop.topic, qos=1)  # type: ignore[attr-defined]
-        _LOG.info("remote settings applied: %s", ", ".join(f"{key}={value}" for key, value in sorted(found.items())))
-        return found
 
     # -- the global stop -------------------------------------------------
     def note_global_stop(self, payload: bytes) -> str:
