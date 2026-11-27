@@ -10,6 +10,6 @@
   "cut_on_link_loss": false,
   "max_link_loss_s": 10.0,
   "cut_on_broker_loss_s": 0.0,
-  "unknown_motion_is_idle": true,
+  "unknown_motion_is_idle": false,
   "moving_speed_mps": 0.05
 }

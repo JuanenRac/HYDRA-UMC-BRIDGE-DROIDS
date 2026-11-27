@@ -35,14 +35,15 @@ class RobotStateFixtureTests(unittest.TestCase):
             "robot_state_turning.json": MachineState.RUNNING,
             "robot_state_estopped.json": MachineState.STOPPED,
             "robot_state_motors_off.json": MachineState.OFFLINE,
-            "robot_state_no_motion_data.json": MachineState.IDLE,
+            "robot_state_no_motion_data.json": None,  # whether it moves is unknown: not read as free
         }
         for fixture, expected in table.items():
             with self.subTest(fixture):
                 self.assertEqual(observed(fixture), expected)
 
-    def test_a_state_with_no_motion_data_is_not_trusted_when_the_setting_says_so(self):
+    def test_a_state_with_no_motion_data_is_idle_only_when_the_setting_says_so(self):
         self.assertIsNone(observed("robot_state_no_motion_data.json", unknown_motion_is_idle=False))
+        self.assertEqual(observed("robot_state_no_motion_data.json", unknown_motion_is_idle=True), MachineState.IDLE)
         self.assertEqual(observed("robot_state_walking.json", unknown_motion_is_idle=False), MachineState.RUNNING)
         self.assertEqual(observed("robot_state_standing.json", unknown_motion_is_idle=False), MachineState.IDLE)
 

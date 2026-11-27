@@ -72,7 +72,7 @@ class SpotSessionConfig:
     cut_on_link_loss: bool = False
     max_link_loss_s: float = 10.0
     cut_on_broker_loss_s: float = 0.0
-    unknown_motion_is_idle: bool = True
+    unknown_motion_is_idle: bool = False  # neither posture nor velocity: whether it moves is unknown, so it is not read as free
     moving_speed_mps: float = 0.05
 
     def problems(self) -> list[str]:
